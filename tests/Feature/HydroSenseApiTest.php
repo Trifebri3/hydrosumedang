@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Device;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -105,5 +107,98 @@ class HydroSenseApiTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('status', 'success')
             ->assertJsonCount(1, 'history');
+    }
+
+    public function test_custom_slug_alat1sumedang_telemetry_and_control(): void
+    {
+        // ESP32 sends telemetry to custom slug /api/sensor/alat1sumedang/data
+        $response = $this->postJson('/api/sensor/alat1sumedang/data', [
+            'temperature' => 26.80,
+            'tds' => 825.0,
+            'voltage' => 1.66,
+            'pump' => false,
+            'auto' => true,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', 'success')
+            ->assertJsonPath('device_code', 'alat1sumedang');
+
+        $this->assertDatabaseHas('devices', [
+            'device_code' => 'alat1sumedang',
+            'status' => 'online',
+        ]);
+
+        // Web controls custom device /api/sensor/alat1sumedang/control
+        $controlResponse = $this->postJson('/api/sensor/alat1sumedang/control', [
+            'pump' => true,
+            'auto' => false,
+            'target_tds' => 880.0,
+        ]);
+
+        $controlResponse->assertStatus(200)
+            ->assertJsonPath('status', 'success')
+            ->assertJsonPath('device.pump_status', true)
+            ->assertJsonPath('device.target_tds', 880);
+    }
+
+    public function test_mobile_app_login_endpoint(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'sumedang@agronex.id',
+            'username' => 'usersumedang',
+            'password' => bcrypt('password123'),
+        ]);
+
+        $response = $this->postJson('/api/auth/login', [
+            'login' => 'usersumedang',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', 'success')
+            ->assertJsonStructure(['token', 'user', 'devices']);
+    }
+
+    public function test_admin_can_update_device_features_and_owner(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $farmer = User::factory()->create([
+            'role' => 'user',
+        ]);
+
+        $device = Device::create([
+            'device_code' => 'alat_custom',
+            'api_key' => 'alat_custom',
+            'name' => 'Alat Custom',
+            'location' => 'Kebun Barat',
+            'has_tds' => true,
+            'has_temp' => true,
+            'has_pump' => true,
+            'has_auto_mode' => true,
+        ]);
+
+        $response = $this->actingAs($admin)->put(route('admin.devices.update', $device->id), [
+            'name' => 'Alat Sensor TDS Saja',
+            'location' => 'Kebun Timur',
+            'user_id' => $farmer->id,
+            'target_tds' => 850,
+            'has_tds' => '1',
+            // has_temp, has_pump, has_auto_mode unchecked
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('devices', [
+            'id' => $device->id,
+            'name' => 'Alat Sensor TDS Saja',
+            'user_id' => $farmer->id,
+            'has_tds' => true,
+            'has_temp' => false,
+            'has_pump' => false,
+            'has_auto_mode' => false,
+        ]);
     }
 }

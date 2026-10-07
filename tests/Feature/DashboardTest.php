@@ -15,11 +15,10 @@ class DashboardTest extends TestCase
 
         $response->assertStatus(200)
             ->assertSee('HydroSense by agronex')
-            ->assertSee('denrawit')
             ->assertSee('agronex')
             ->assertSee('Suhu Air')
-            ->assertSee('Nilai TDS')
-            ->assertSee('Smart Irrigation')
-            ->assertSee('Panduan ESP32');
+            ->assertSee('Kepekatan Nutrisi')
+            ->assertSee('Instalasi Hidroponik')
+            ->assertSee('Buku Panduan HydroSense');
     }
 }

@@ -4,19 +4,34 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Device;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class HydroSenseApiController extends Controller
 {
     /**
      * Endpoint for ESP32 to send sensor data & receive latest control states.
+     * Supports POST /api/sensor/{device_code}/data or POST /api/sensor/data
      */
-    public function recordTelemetry(Request $request)
+    public function recordTelemetry(Request $request, ?string $device_code = null)
     {
+        $targetCode = $device_code
+            ?? $request->input('device_code')
+            ?? $request->input('api_key')
+            ?? $request->header('X-Device-Code')
+            ?? $request->header('X-Device-Token');
+
+        if (! $targetCode) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'device_code atau api_key wajib diisi.',
+            ], 422);
+        }
+
         $validated = $request->validate([
-            'device_code' => ['required', 'string', 'max:50'],
-            'temperature' => ['required', 'numeric'],
-            'tds' => ['required', 'numeric'],
+            'temperature' => ['nullable', 'numeric'],
+            'tds' => ['nullable', 'numeric'],
             'voltage' => ['nullable', 'numeric'],
             'pump' => ['nullable', 'boolean'],
             'auto' => ['nullable', 'boolean'],
@@ -24,26 +39,42 @@ class HydroSenseApiController extends Controller
             'wifi_ssid' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $device = Device::firstOrCreate(
-            ['device_code' => $validated['device_code']],
-            [
-                'name' => 'HydroSense '.$validated['device_code'],
-                'location' => 'Greenhouse Sumedang',
-                'target_tds' => 800.0,
-                'auto_mode' => $validated['auto'] ?? false,
-                'pump_status' => $validated['pump'] ?? false,
-            ]
-        );
+        $device = Device::where('device_code', $targetCode)
+            ->orWhere('api_key', $targetCode)
+            ->first();
 
-        // If ESP32 is in auto mode, sync device state; otherwise retain user-commanded pump state
-        $pumpStatus = $device->auto_mode
+        if (! $device) {
+            $device = Device::create([
+                'device_code' => $targetCode,
+                'api_key' => $targetCode,
+                'name' => 'HydroSense '.$targetCode,
+                'location' => 'Greenhouse Hidroponik',
+                'target_tds' => 800.0,
+                'has_tds' => true,
+                'has_temp' => true,
+                'has_pump' => true,
+                'has_auto_mode' => true,
+                'auto_mode' => $validated['auto'] ?? true,
+                'pump_status' => $validated['pump'] ?? false,
+            ]);
+        }
+
+        $pumpStatus = $device->has_pump && $device->auto_mode
             ? (bool) ($validated['pump'] ?? $device->pump_status)
-            : $device->pump_status;
+            : ($device->has_pump ? $device->pump_status : false);
+
+        $tempValue = $device->has_temp
+            ? (float) ($validated['temperature'] ?? $device->temperature ?? 25.0)
+            : 0.0;
+
+        $tdsValue = $device->has_tds
+            ? (float) ($validated['tds'] ?? $device->tds ?? 0.0)
+            : 0.0;
 
         $device->update([
-            'temperature' => $validated['temperature'],
-            'tds' => $validated['tds'],
-            'voltage' => $validated['voltage'] ?? 0.0,
+            'temperature' => $tempValue,
+            'tds' => $tdsValue,
+            'voltage' => $validated['voltage'] ?? $device->voltage ?? 0.0,
             'pump_status' => $pumpStatus,
             'ip_address' => $validated['ip_address'] ?? $device->ip_address,
             'wifi_ssid' => $validated['wifi_ssid'] ?? $device->wifi_ssid,
@@ -51,10 +82,9 @@ class HydroSenseApiController extends Controller
             'last_seen_at' => now(),
         ]);
 
-        // Save sensor reading history log
         $device->readings()->create([
-            'temperature' => $validated['temperature'],
-            'tds' => $validated['tds'],
+            'temperature' => $tempValue,
+            'tds' => $tdsValue,
             'voltage' => $validated['voltage'] ?? 0.0,
             'pump_status' => $device->pump_status,
             'auto_mode' => $device->auto_mode,
@@ -63,22 +93,35 @@ class HydroSenseApiController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Telemetry saved successfully',
+            'device_code' => $device->device_code,
             'server_time' => now()->toDateTimeString(),
             'control' => [
-                'pump' => (bool) $device->pump_status,
-                'auto' => (bool) $device->auto_mode,
+                'pump' => $device->has_pump ? (bool) $device->pump_status : false,
+                'auto' => $device->has_auto_mode ? (bool) $device->auto_mode : false,
                 'target_tds' => (float) $device->target_tds,
+            ],
+            'features' => [
+                'has_tds' => (bool) $device->has_tds,
+                'has_temp' => (bool) $device->has_temp,
+                'has_pump' => (bool) $device->has_pump,
+                'has_auto_mode' => (bool) $device->has_auto_mode,
             ],
         ]);
     }
 
     /**
-     * Get latest telemetry & status for web dashboard.
+     * Get latest telemetry & status for web dashboard or mobile app.
      */
-    public function getLatest(Request $request)
+    public function getLatest(Request $request, ?string $device_code = null)
     {
-        $deviceCode = $request->query('device_code', 'HYDROSENSE-01');
-        $device = Device::where('device_code', $deviceCode)->first();
+        $targetCode = $device_code ?? $request->query('device_code', $request->query('api_key'));
+
+        $query = Device::query();
+        if ($targetCode) {
+            $query->where(fn ($q) => $q->where('device_code', $targetCode)->orWhere('api_key', $targetCode));
+        }
+
+        $device = $query->first();
 
         if (! $device) {
             $device = Device::first();
@@ -98,11 +141,18 @@ class HydroSenseApiController extends Controller
             'device' => [
                 'id' => $device->id,
                 'device_code' => $device->device_code,
+                'api_key' => $device->api_key ?? $device->device_code,
                 'name' => $device->name,
                 'location' => $device->location,
+                'notes' => $device->notes,
+                'owner' => $device->user?->name ?? 'Belum Ditugaskan',
                 'temperature' => (float) ($device->temperature ?? 0),
                 'tds' => (float) ($device->tds ?? 0),
                 'voltage' => (float) ($device->voltage ?? 0),
+                'has_tds' => (bool) $device->has_tds,
+                'has_temp' => (bool) $device->has_temp,
+                'has_pump' => (bool) $device->has_pump,
+                'has_auto_mode' => (bool) $device->has_auto_mode,
                 'pump_status' => (bool) $device->pump_status,
                 'auto_mode' => (bool) $device->auto_mode,
                 'target_tds' => (float) $device->target_tds,
@@ -117,19 +167,28 @@ class HydroSenseApiController extends Controller
     }
 
     /**
-     * Update pump, auto mode, or target TDS from web dashboard.
+     * Update pump, auto mode, or target TDS.
      */
-    public function updateControl(Request $request)
+    public function updateControl(Request $request, ?string $device_code = null)
     {
+        $targetCode = $device_code
+            ?? $request->input('device_code')
+            ?? $request->input('api_key')
+            ?? 'alat1sumedang';
+
+        $device = Device::where('device_code', $targetCode)
+            ->orWhere('api_key', $targetCode)
+            ->first();
+
+        if (! $device) {
+            $device = Device::firstOrFail();
+        }
+
         $validated = $request->validate([
-            'device_code' => ['nullable', 'string'],
             'pump' => ['nullable', 'boolean'],
             'auto' => ['nullable', 'boolean'],
             'target_tds' => ['nullable', 'numeric', 'min:0', 'max:5000'],
         ]);
-
-        $deviceCode = $validated['device_code'] ?? 'HYDROSENSE-01';
-        $device = Device::where('device_code', $deviceCode)->firstOrFail();
 
         $updateData = [];
 
@@ -149,8 +208,9 @@ class HydroSenseApiController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Kontrol perangkat berhasil diperbarui',
+            'message' => 'Kontrol perangkat '.$device->device_code.' berhasil diperbarui',
             'device' => [
+                'device_code' => $device->device_code,
                 'pump_status' => (bool) $device->pump_status,
                 'auto_mode' => (bool) $device->auto_mode,
                 'target_tds' => (float) $device->target_tds,
@@ -161,10 +221,16 @@ class HydroSenseApiController extends Controller
     /**
      * Get historical sensor data for charts and logs.
      */
-    public function getHistory(Request $request)
+    public function getHistory(Request $request, ?string $device_code = null)
     {
-        $deviceCode = $request->query('device_code', 'HYDROSENSE-01');
-        $device = Device::where('device_code', $deviceCode)->first();
+        $targetCode = $device_code ?? $request->query('device_code', $request->query('api_key'));
+
+        $query = Device::query();
+        if ($targetCode) {
+            $query->where(fn ($q) => $q->where('device_code', $targetCode)->orWhere('api_key', $targetCode));
+        }
+
+        $device = $query->first();
 
         if (! $device) {
             $device = Device::first();
@@ -191,7 +257,64 @@ class HydroSenseApiController extends Controller
 
         return response()->json([
             'status' => 'success',
+            'device_code' => $device->device_code,
             'history' => $readings,
+        ]);
+    }
+
+    /**
+     * Mobile App API Login (Untuk dibawa ke aplikasi Android / iOS).
+     */
+    public function mobileLogin(Request $request)
+    {
+        $validated = $request->validate([
+            'login' => ['required', 'string'], // email or username
+            'password' => ['required', 'string'],
+        ]);
+
+        $user = User::where('email', $validated['login'])
+            ->orWhere('username', $validated['login'])
+            ->first();
+
+        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Email/Username atau password salah',
+            ], 401);
+        }
+
+        $token = $user->createToken('mobile-app')->plainTextToken;
+
+        $devices = $user->isAdmin()
+            ? Device::all()
+            : $user->devices;
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Login berhasil',
+            'token' => $token,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'email' => $user->email,
+                'role' => $user->role,
+            ],
+            'devices' => $devices->map(fn ($d) => [
+                'device_code' => $d->device_code,
+                'api_key' => $d->api_key,
+                'name' => $d->name,
+                'location' => $d->location,
+                'temperature' => (float) $d->temperature,
+                'tds' => (float) $d->tds,
+                'has_tds' => (bool) $d->has_tds,
+                'has_temp' => (bool) $d->has_temp,
+                'has_pump' => (bool) $d->has_pump,
+                'has_auto_mode' => (bool) $d->has_auto_mode,
+                'pump_status' => (bool) $d->pump_status,
+                'auto_mode' => (bool) $d->auto_mode,
+                'is_online' => $d->isOnline(),
+            ]),
         ]);
     }
 }

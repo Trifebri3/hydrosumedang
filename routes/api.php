@@ -4,21 +4,26 @@ use App\Http\Controllers\Api\HydroSenseApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-// HydroSense IoT API Routes
+// Mobile App Authentication Endpoint
+Route::post('/auth/login', [HydroSenseApiController::class, 'mobileLogin']);
+
+// HydroSense IoT API Routes (Global & Per-Device)
 Route::prefix('sensor')->group(function () {
-    // ESP32 sends telemetry & gets latest pump/mode/target controls
+    // 1. Per-Device Custom Slug Endpoints (misal: /api/sensor/alat1sumedang/data)
+    Route::post('/{device_code}/data', [HydroSenseApiController::class, 'recordTelemetry']);
+    Route::get('/{device_code}/latest', [HydroSenseApiController::class, 'getLatest']);
+    Route::post('/{device_code}/control', [HydroSenseApiController::class, 'updateControl']);
+    Route::get('/{device_code}/history', [HydroSenseApiController::class, 'getHistory']);
+
+    // 2. Global Endpoints (device_code dikirim di JSON body atau query param)
     Route::post('/data', [HydroSenseApiController::class, 'recordTelemetry']);
-
-    // Web Dashboard reads real-time status
     Route::get('/latest', [HydroSenseApiController::class, 'getLatest']);
-
-    // Web Dashboard commands (Pump ON/OFF, AUTO/MANUAL, Target TDS)
     Route::post('/control', [HydroSenseApiController::class, 'updateControl']);
-
-    // Historical telemetry for charts & logs
     Route::get('/history', [HydroSenseApiController::class, 'getHistory']);
 });
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user()->load('devices');
+    });
+});

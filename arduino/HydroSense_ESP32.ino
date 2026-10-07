@@ -57,8 +57,8 @@
 const char* AP_SSID = "SMART-HYDROPONIC";
 const char* AP_PASSWORD = "12345678";
 
-// Identitas Perangkat di Dashboard Laravel
-const char* DEVICE_CODE = "HYDROSENSE-01";
+// Identitas Perangkat di Dashboard Laravel (Bisa Diubah di Portal Lokal)
+String savedDeviceCode = "alat1sumedang";
 
 // ============================================================
 // OBJEK & VARIABEL GLOBAL
@@ -69,10 +69,10 @@ Preferences preferences;
 OneWire oneWire(TEMP_PIN);
 DallasTemperature waterTemperature(&oneWire);
 
-// Konfigurasi WiFi & Server (Tersimpan di Preferences)
+// Konfigurasi WiFi & Server (Tersimpan di Preferences Flash)
 String savedSSID = "";
 String savedPassword = "";
-String savedServerUrl = "http://192.168.1.100:8000/api/sensor/data"; // Sesuaikan IP laptop/server
+String savedServerUrl = "http://192.168.1.100:8000/api/sensor/alat1sumedang/data"; // Sesuaikan IP server
 
 bool isWifiConnected = false;
 bool apModeActive = false;
@@ -167,6 +167,9 @@ label { font-size: 12px; font-weight: 700; color: #475569; display: block; margi
 <div class="card">
   <h3 style="margin-top:0; font-size:16px; color:#0f172a;">⚙️ Pengaturan WiFi & Server Laravel</h3>
   <form action="/save-wifi" method="POST">
+    <label>Kode Alat / Custom API Key:</label>
+    <input type="text" name="code" value="alat1sumedang" placeholder="Contoh: alat1sumedang atau alat2sumedang" required>
+
     <label>Nama WiFi (SSID):</label>
     <input type="text" name="ssid" placeholder="Contoh: WiFi_Rumah" required>
 
@@ -174,7 +177,7 @@ label { font-size: 12px; font-weight: 700; color: #475569; display: block; margi
     <input type="password" name="password" placeholder="Password WiFi">
 
     <label>URL Endpoint Laravel:</label>
-    <input type="text" name="server" value="http://192.168.1.100:8000/api/sensor/data" placeholder="http://<IP_KOMPUTER>:8000/api/sensor/data" required>
+    <input type="text" name="server" value="http://192.168.1.100:8000/api/sensor/alat1sumedang/data" placeholder="http://<IP_KOMPUTER>:8000/api/sensor/<KODE>/data" required>
 
     <button type="submit" class="btn-submit">💾 SIMPAN & SAMBUNGKAN</button>
   </form>
@@ -336,7 +339,7 @@ void syncWithLaravelServer() {
 
   // Siapkan Payload JSON untuk Laravel
   StaticJsonDocument<300> doc;
-  doc["device_code"] = DEVICE_CODE;
+  doc["device_code"] = savedDeviceCode;
   doc["temperature"] = serialized(String(temperature, 2));
   doc["tds"]         = serialized(String(tds, 2));
   doc["voltage"]     = serialized(String(voltage, 2));
@@ -427,26 +430,31 @@ void handleModeToggle() {
 
 void handleSaveWifi() {
   if (server.hasArg("ssid") && server.hasArg("server")) {
+    if (server.hasArg("code") && server.arg("code").length() > 0) {
+      savedDeviceCode = server.arg("code");
+    }
     savedSSID = server.arg("ssid");
     savedPassword = server.arg("password");
     savedServerUrl = server.arg("server");
 
     // Simpan permanen ke Preferences NVS
     preferences.begin("hydro", false);
+    preferences.putString("code", savedDeviceCode);
     preferences.putString("ssid", savedSSID);
     preferences.putString("pass", savedPassword);
     preferences.putString("server", savedServerUrl);
     preferences.end();
 
     String msg = "<!DOCTYPE html><html><body style='font-family:sans-serif; text-align:center; padding:40px; background:#f0fdf4;'>";
-    msg += "<h2 style='color:#15803d;'>WiFi Berhasil Disimpan!</h2>";
+    msg += "<h2 style='color:#15803d;'>Pengaturan Berhasil Disimpan!</h2>";
+    msg += "<p>Kode Alat: <b>" + savedDeviceCode + "</b></p>";
     msg += "<p>ESP32 sedang mencoba menyambungkan ke: <b>" + savedSSID + "</b></p>";
     msg += "<p>Tunggu 5 detik, lalu buka kembali browser.</p>";
     msg += "<a href='/' style='display:inline-block; padding:10px 20px; background:#15803d; color:white; border-radius:8px; text-decoration:none;'>Kembali ke Beranda</a>";
     msg += "</body></html>";
     server.send(200, "text/html", msg);
 
-    Serial.println("[CONFIG] Kredensial WiFi baru berhasil disimpan.");
+    Serial.println("[CONFIG] Kredensial WiFi & Kode Alat baru berhasil disimpan.");
     delay(1000);
 
     // Coba konek ke WiFi baru
@@ -477,13 +485,15 @@ void setup() {
 
   // Buka memori Preferences NVS
   preferences.begin("hydro", true);
+  savedDeviceCode = preferences.getString("code", savedDeviceCode);
   savedSSID = preferences.getString("ssid", "");
   savedPassword = preferences.getString("pass", "");
   savedServerUrl = preferences.getString("server", savedServerUrl);
   preferences.end();
 
-  Serial.print("[CONFIG] SSID Tersimpan: "); Serial.println(savedSSID.length() > 0 ? savedSSID : "(Belum ada)");
-  Serial.print("[CONFIG] API Endpoint  : "); Serial.println(savedServerUrl);
+  Serial.print("[CONFIG] Kode Alat      : "); Serial.println(savedDeviceCode);
+  Serial.print("[CONFIG] SSID Tersimpan  : "); Serial.println(savedSSID.length() > 0 ? savedSSID : "(Belum ada)");
+  Serial.print("[CONFIG] API Endpoint    : "); Serial.println(savedServerUrl);
 
   // Coba sambungkan WiFi
   bool connected = false;

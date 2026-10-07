@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Device;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class DeviceSeeder extends Seeder
@@ -12,11 +13,15 @@ class DeviceSeeder extends Seeder
      */
     public function run(): void
     {
+        $userSumedang = User::where('email', 'sumedang@agronex.id')->first();
+
         $device = Device::firstOrCreate(
-            ['device_code' => 'HYDROSENSE-01'],
+            ['device_code' => 'alat1sumedang'],
             [
-                'name' => 'HydroSense Sumedang',
-                'location' => 'Greenhouse 01 - Sumedang',
+                'user_id' => $userSumedang?->id,
+                'api_key' => 'alat1sumedang',
+                'name' => 'HydroSense Sumedang Unit 1',
+                'location' => 'Greenhouse Cisewu - Sumedang',
                 'temperature' => 26.50,
                 'tds' => 820.00,
                 'voltage' => 1.65,
@@ -26,11 +31,18 @@ class DeviceSeeder extends Seeder
                 'ip_address' => '192.168.1.105',
                 'wifi_ssid' => 'Agronex_SmartFarm',
                 'status' => 'online',
+                'notes' => 'Instalasi Hidroponik NFT Selada & Pakcoy',
                 'last_seen_at' => now(),
             ]
         );
 
-        // Seed 10 sample history points over the last 30 minutes if empty
+        // Also ensure HYDROSENSE-01 links to userSumedang if it exists
+        Device::where('device_code', 'HYDROSENSE-01')->update([
+            'user_id' => $userSumedang?->id,
+            'api_key' => 'HYDROSENSE-01',
+        ]);
+
+        // Seed sample history points if empty
         if ($device->readings()->count() === 0) {
             for ($i = 9; $i >= 0; $i--) {
                 $time = now()->subMinutes($i * 3);
