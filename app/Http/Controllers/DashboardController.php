@@ -13,33 +13,40 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Get accessible devices for this session
+        // Get accessible devices for this session (Strict Isolation)
         if (! $user->isAdmin()) {
-            $devices = $user->devices()->with('user')->get();
-            // If user has no devices assigned yet, link default alat1sumedang
+            $devices = Device::where('user_id', $user->id)->with('user')->get();
+
+            // If user has no devices assigned yet, show empty state notice
             if ($devices->isEmpty()) {
-                $alat1 = Device::where('device_code', 'alat1sumedang')->first();
-                if ($alat1) {
-                    $alat1->update(['user_id' => $user->id]);
-                    $devices = collect([$alat1]);
+                return view('no-device', compact('user'));
+            }
+
+            // Selected device for regular user
+            $selectedCode = $request->query('device');
+            if ($selectedCode) {
+                $device = $devices->firstWhere('device_code', $selectedCode);
+                if (! $device) {
+                    abort(403, 'Anda tidak memiliki hak akses ke instalasi kebun ini.');
                 }
+            } else {
+                $device = $devices->first();
             }
         } else {
+            // Admin can access all devices
             $devices = Device::with('user')->get();
-        }
+            $selectedCode = $request->query('device');
+            $device = null;
 
-        // Selected device
-        $selectedCode = $request->query('device');
-        $device = null;
+            if ($selectedCode) {
+                $device = $devices->firstWhere('device_code', $selectedCode)
+                    ?? Device::where('device_code', $selectedCode)->orWhere('api_key', $selectedCode)->first();
+            }
 
-        if ($selectedCode) {
-            $device = $devices->firstWhere('device_code', $selectedCode)
-                ?? ($user->isAdmin() ? Device::where('device_code', $selectedCode)->orWhere('api_key', $selectedCode)->first() : null);
-        }
-
-        if (! $device) {
-            $device = $devices->firstWhere('device_code', 'alat1sumedang')
-                ?? $devices->first();
+            if (! $device) {
+                $device = $devices->firstWhere('device_code', 'alat1sumedang')
+                    ?? $devices->first();
+            }
         }
 
         // If database was completely empty, create default alat1sumedang

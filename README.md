@@ -1,47 +1,46 @@
-# 🌱 HydroSense by agronex
+# HydroSense by agronex
 
 Sistem IoT Cerdas untuk Monitoring dan Kontrol Nutrisi Hidroponik berbasis **ESP32**, **Laravel 12**, dan **MySQL**.
 
 ---
 
-## ✨ Fitur Utama
-1. **Monitoring Real-time**:
-   - Suhu Air (°C) menggunakan sensor waterproof DS18B20.
-   - Nilai TDS Nutrisi (ppm) menggunakan analog TDS Sensor dengan kompensasi suhu otomatis.
-   - Tegangan Sensor (V) pada pin ADC ESP32.
-   - Status Relay Pompa Nutrisi (ON / OFF).
-2. **Kontrol Dua Arah (Bidirectional Control)**:
-   - Kontrol Pompa Manual (ON / OFF) langsung dari Dashboard Web.
-   - Pilihan Mode Kerja: **AUTO** (pompa aktif otomatis jika TDS < target) dan **MANUAL**.
-   - Pengaturan Target TDS (400 - 1800 ppm) dengan slider & preset tanaman (Selada, Pakcoy, Bayam, Tomat).
-3. **Mekanisme Fallback WiFi Mandiri (Offline Mode)**:
-   - Jika ESP32 tidak terhubung ke WiFi atau internet putus, ESP32 otomatis menyalakan Access Point sendiri:
-     - **SSID:** `SMART-HYDROPONIC`
-     - **Password:** `12345678`
-     - **IP Web Portal:** `http://192.168.4.1`
-   - Melalui web portal lokal tersebut, pengguna dapat mengganti SSID & Password WiFi serta URL Server tanpa perlu memprogram ulang ESP32. Kredensial tersimpan permanen di memori Flash NVS (`Preferences`).
-4. **Grafik & Riwayat Data**:
+## Fitur Utama
+1. **Monitoring Real-time & Modular NoSQL**:
+   - Suhu Air (°C), TDS Nutrisi (ppm), Derajat Keasaman pH air, dan parameter sensor modular tambahan tanpa perlu migrasi database berulang kali.
+   - Status kendali pompa multi-saluran (hingga banyak pompa sirkulasi/nutrisi).
+   - Penyimpanan dokumen JSON mentah (NoSQL style payload) yang fleksibel.
+2. **Manajemen Pengguna & Alat Terisolasi**:
+   - Panel Manajemen Admin terpusat (`/admin`) untuk operasi CRUD lengkap Alat dan Pengguna.
+   - Setiap alat wajib terikat pada 1 pengguna pemilik; pengguna lain tidak memiliki akses (HTTP 403 Forbidden).
+3. **Kontrol Dua Arah**:
+   - Kontrol saklar pompa manual atau multi-pompa via antarmuka web.
+   - Pilihan Mode Kerja: **AUTO** dan **MANUAL**.
+   - Pengaturan Target TDS dengan slider dan preset tanaman.
+4. **Mekanisme Fallback WiFi Mandiri**:
+   - Access Point darurat: `SMART-HYDROPONIC` (Sandi: `12345678`), Portal lokal `http://192.168.4.1`.
+   - Alat uji format JSON & simulator modular bawaan pada portal lokal perangkat.
+5. **Grafik & Riwayat Data**:
    - Visualisasi tren waktu nyata TDS & Suhu dengan Chart.js.
-   - Tabel histori pembacaan sensor tersimpan di database MySQL.
+   - Riwayat data telemetri tersimpan otomatis di database.
 
 ---
 
-## 📌 Pinout ESP32
+## Pinout ESP32
 - **TDS Sensor Analog:** GPIO 34
-- **DS18B20 Data:** GPIO 4 (Pull-up resistor 4.7kΩ ke 3.3V)
+- **DS18B20 Data:** GPIO 4 (Pull-up resistor 4.7k ke 3.3V)
 - **Relay IN:** GPIO 26 (Active LOW)
 
 ---
 
-## 🚀 Endpoint API Laravel
-- `POST /api/sensor/data` : ESP32 mengirim telemetri & menerima status kontrol terbaru.
-- `GET /api/sensor/latest` : Dashboard mengambil data perangkat dan telemetri terakhir.
+## Endpoint API Laravel
+- `POST /api/sensor/data` : Pengiriman telemetri modular ESP32 & penerimaan status kontrol terbaru.
+- `GET /api/sensor/latest` : Dashboard membaca data perangkat dan telemetri terakhir.
 - `POST /api/sensor/control` : Perintah kontrol pompa, mode, dan target TDS dari web.
 - `GET /api/sensor/history` : Riwayat pembacaan sensor untuk grafik tren.
 
 ---
 
-## 🛠️ Instalasi & Menjalankan
+## Instalasi & Menjalankan
 
 ### 1. Web Server Laravel
 ```bash
@@ -58,6 +57,7 @@ Buka file `arduino/HydroSense_ESP32.ino` di Arduino IDE, pastikan library terpas
 - `OneWire`
 - `DallasTemperature`
 - `ArduinoJson` (v6 atau v7)
+
 
 Upload ke board ESP32 Anda.
 

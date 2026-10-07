@@ -15,9 +15,14 @@ class SensorReading extends Model
         'device_id',
         'temperature',
         'tds',
+        'ph',
         'voltage',
         'pump_status',
+        'pump_states',
         'auto_mode',
+        'sensor_data',
+        'pump_data',
+        'raw_payload',
     ];
 
     protected function casts(): array
@@ -25,9 +30,14 @@ class SensorReading extends Model
         return [
             'temperature' => 'float',
             'tds' => 'float',
+            'ph' => 'float',
             'voltage' => 'float',
             'pump_status' => 'boolean',
+            'pump_states' => 'array',
             'auto_mode' => 'boolean',
+            'sensor_data' => 'array',
+            'pump_data' => 'array',
+            'raw_payload' => 'array',
         ];
     }
 

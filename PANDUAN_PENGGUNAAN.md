@@ -70,63 +70,76 @@ Platform menyediakan dua cara pengoperasian pompa sirkulasi air:
 
 ---
 
-## 4. Kustomisasi Fitur Tiap Alat (Khusus Administrator)
+## 4. Panel Manajemen Terpusat Administrator (/admin)
 
-Setiap instalasi kebun memiliki spesifikasi lapangan yang berbeda. Administrator dapat mengkustomisasi fitur apa saja yang aktif pada masing-masing alat:
+Untuk memudahkan pemantauan dan administrasi, sistem memisahkan tampilan monitoring kebun dengan **Panel Manajemen** khusus Administrator.
 
-### Skenario Lapangan yang Didukung:
-1. **Pos Pantau Nutrisi Mandiri:**
-   Alat hanya memiliki sensor nutrisi (TDS) tanpa sensor suhu dan tanpa pompa air.
-2. **Pos Multi-Sensor:**
-   Alat membaca kepekatan nutrisi dan suhu air sekaligus tanpa saklar pompa.
-3. **Instalasi Lengkap:**
-   Alat membaca sensor nutrisi, sensor suhu, saklar pompa air, dan mode otomatis.
-
-### Langkah Mengatur Fitur dan Menghubungkan Akun:
-1. Masuk menggunakan akun **Administrator**.
-2. Pilih instalasi kebun yang ingin diatur dari daftar pemilih di bagian atas.
-3. Klik tombol **Atur Fitur Alat** di samping judul instalasi.
-4. Pada jendela pengaturan:
-   - Ubah nama instalasi dan lokasi jika diperlukan.
-   - Pada menu **Hubungkan ke Akun Petani**, pilih nama akun petani yang berhak mengelola kebun tersebut.
-   - Pada bagian **Pilih Fitur yang Aktif pada Alat Ini**, centang atau hapus centang sesuai kebutuhan:
-     - [ ] Sensor Kepekatan Nutrisi (TDS / PPM)
-     - [ ] Sensor Suhu Air (°C)
-     - [ ] Saklar & Kendali Pompa Sirkulasi Air
-     - [ ] Mode Otomatis Nutrisi Tanaman
-5. Klik **Simpan Perubahan**.
-6. Tampilan halaman dasbor petani yang bersangkutan akan langsung menyesuaikan secara dinamis:
-   - Jika pompa dimatikan pada pengaturan alat, tombol saklar pompa akan disembunyikan.
-   - Jika sensor suhu dimatikan, kolom dan grafik suhu akan disembunyikan agar tampilan tetap rapi.
+### Akses Panel Manajemen:
+1. Masuk menggunakan akun **Administrator** (`admin@agronex.id`).
+2. Klik tombol **Panel Manajemen** di sudut kanan atas layar (atau kunjungi URL `/admin`).
+3. Pada panel ini terdapat tiga tab utama:
+   - **Daftar Alat (CRUD Alat):** Tambah alat baru, ubah konfigurasi & fitur, hubungkan ke akun petani, atau hapus alat beserta data telemetrinya.
+   - **Daftar Pengguna (CRUD Pengguna):** Buat akun petani/pengelola baru, perbarui nama/email/role/kata sandi, atau hapus akun pengguna (akun admin yang sedang login dilindungi dari penghapusan mandiri).
+   - **Simulator JSON & Modular NoSQL:** Menguji pengiriman payload JSON dinamis ke alat tanpa memerlukan perangkat fisik.
 
 ---
 
-## 5. Menambah Instalasi Kebun Baru Tanpa Membuat Web Baru
+## 5. Aturan Pengikatan Alat & Keamanan Akses (Isolasi Pengguna)
 
-Jika Anda memasang unit baru di kebun lain (misalnya Unit Garut atau Unit Subang):
-1. Masuk sebagai **Administrator**.
-2. Klik tombol **+ Tambah Alat**.
-3. Isi:
-   - Nama Instalasi (contoh: HydroSense Kebun Garut Unit 1)
-   - Kode Unik Alat (contoh: `alat1garut` atau `alat2sumedang`)
-   - Lokasi Kebun (contoh: Cisewu, Garut)
-   - Target Nutrisi Awal
-   - Akun Pemilik / Petani
-   - Centang fitur yang terpasang pada alat baru tersebut.
-4. Klik **Simpan Instalasi**.
-5. Alat baru langsung aktif di sistem tanpa perlu mengubah kode web.
+Sistem menerapkan aturan keamanan multi-tenant yang ketat:
+1. **Wajib Terikat ke 1 Pengguna:**
+   Setiap alat yang dibuat **wajib dipilihkan 1 akun pemilik**. Tidak ada alat liar atau mengambang tanpa pemilik.
+2. **Isolasi Akses Total:**
+   - Petani hanya dapat melihat alat dan riwayat grafik kebun yang terikat pada akun miliknya.
+   - Petani tidak dapat mengakses atau memanipulasi alat milik petani lain. Upaya membuka alat lain akan ditolak sistem dengan respon `403 Forbidden` (Akses Ditolak).
+   - Jika petani belum memiliki instalasi kebun yang terhubung, sistem akan menampilkan halaman ramah yang mengarahkan petani untuk menghubungi Administrator.
+3. **Administrator:**
+   Memiliki hak untuk melihat seluruh instalasi di lapangan serta mengalihkan kepemilikan alat ke petani lain kapan pun dibutuhkan melalui formulir Edit Alat.
 
 ---
 
-## 6. Bantuan Sambungan WiFi Mandiri (Offline Mode)
+## 6. Format Data Modular NoSQL (Dukungan Sensor Tambahan & Pompa Multi-Saluran)
+
+Sistem menggunakan konsep dokumen NoSQL JSON yang fleksibel:
+1. **Sensor & Pompa Fleksibel:**
+   Alat dapat mengirimkan data parameter apa saja (misal: sensor pH, DO, intensitas cahaya, kelembaban, serta status hingga 5 pompa relay pupuk) dalam satu dokumen JSON.
+2. **Tanpa Perlu Migrasi Database Berulang:**
+   Data JSON mentah disimpan seutuhnya di kolom dokumen database (`raw_payload` dan `last_payload`). Kolom-kolom parameter baru langsung tampil secara dinamis pada kartu dashboard dan inspektur JSON.
+3. **Contoh Format JSON:**
+```json
+{
+  "device": "alat1sumedang",
+  "tds": 845.0,
+  "temp": 24.5,
+  "ph": 6.8,
+  "voltage": 1.95,
+  "pump": "OFF",
+  "mode": "AUTO",
+  "target_tds": 850,
+  "pumps": {
+    "pompa_sirkulasi": "OFF",
+    "pompa_pupuk_a": "OFF",
+    "pompa_pupuk_b": "OFF"
+  },
+  "sensors": {
+    "kelembaban": 72.0,
+    "lux": 1540
+  }
+}
+```
+
+---
+
+## 7. Bantuan Sambungan WiFi Mandiri & Tools Firmware ESP32
 
 Jika perangkat alat di kebun belum tersambung ke internet atau kata sandi WiFi kebun diganti:
 
 1. Perangkat kebun secara otomatis akan memancarkan WiFi darurat sendiri bernama **SMART-HYDROPONIC**.
-2. Buka menu pengaturan WiFi di HP atau laptop Anda, lalu sambungkan ke WiFi **SMART-HYDROPONIC** (Kata sandi: **12345678**).
-3. Buka peramban (browser Google Chrome atau Safari), lalu ketik alamat: **192.168.4.1**
-4. Pada halaman yang muncul:
-   - Masukkan Nama WiFi kebun dan kata sandinya.
-   - Masukkan Kode Alat (misal: `alat1sumedang` atau kode alat baru yang sudah dibuat).
-   - Klik **Simpan & Sambungkan**.
-5. Alat akan otomatis terhubung ke internet dan data kebun Anda akan langsung tampil di halaman web HydroSense.
+2. Sambungkan ponsel atau laptop ke WiFi **SMART-HYDROPONIC** (Kata sandi: **12345678**).
+3. Buka peramban di alamat: **http://192.168.4.1**
+4. Pada portal lokal terdapat menu:
+   - **Pemantauan:** Memantau nilai sensor langsung dari alat secara offline.
+   - **Tools JSON (Modular):** Simulator untuk menguji format JSON modular (preset Standar, Tambah Sensor pH, dan Multi-Pompa Pupuk) langsung ke server.
+   - **Pengaturan:** Mengganti SSID WiFi, sandi WiFi, dan URL API server.
+5. Klik **Simpan & Sambungkan**. Alat akan segera terhubung ke server HydroSense dan data langsung tersaji pada dashboard web.
+

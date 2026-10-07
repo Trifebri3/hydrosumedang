@@ -16,11 +16,15 @@ Route::middleware('auth')->group(function () {
     // Main HydroSense Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Admin Management Routes (Membuat Alat Baru, Mengatur Fitur, Mengelola User Petani)
+    // Admin Management Central Routes (Panel Manajemen Khusus Admin)
     Route::prefix('admin')->group(function () {
+        Route::get('/', [AdminController::class, 'index'])->name('admin.manage');
         Route::post('/devices', [AdminController::class, 'storeDevice'])->name('admin.devices.store');
         Route::put('/devices/{device}', [AdminController::class, 'updateDevice'])->name('admin.devices.update');
+        Route::post('/devices/{device}/simulate', [AdminController::class, 'simulatePayload'])->name('admin.devices.simulate');
         Route::delete('/devices/{device}', [AdminController::class, 'deleteDevice'])->name('admin.devices.destroy');
         Route::post('/users', [AdminController::class, 'storeUser'])->name('admin.users.store');
+        Route::put('/users/{user}', [AdminController::class, 'updateUser'])->name('admin.users.update');
+        Route::delete('/users/{user}', [AdminController::class, 'deleteUser'])->name('admin.users.destroy');
     });
 });

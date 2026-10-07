@@ -83,6 +83,16 @@
 
             <!-- Bagian Kanan Header -->
             <div class="flex items-center gap-2">
+                @if(auth()->check() && auth()->user()->isAdmin())
+                    <a href="{{ route('admin.manage') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition shadow-xs">
+                        <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <span>Panel Manajemen</span>
+                    </a>
+                @endif
+
                 <!-- Tombol Buka Buku Panduan -->
                 <button onclick="openGuideModal('tab-monitor')" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 border border-slate-200/80 transition">
                     <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -116,11 +126,17 @@
     <!-- Kontainer Halaman Utama -->
     <main class="max-w-5xl mx-auto px-4 sm:px-6 pt-4 space-y-5">
 
-        <!-- Pesan Sukses -->
+        <!-- Pesan Sukses / Error -->
         @if(session('success'))
             <div class="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs sm:text-sm text-emerald-800 font-semibold flex items-center justify-between shadow-xs">
                 <span>{{ session('success') }}</span>
                 <button onclick="this.parentElement.remove()" class="text-emerald-600 hover:text-emerald-800 font-bold ml-2">Tutup</button>
+            </div>
+        @endif
+        @if(session('error'))
+            <div class="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs sm:text-sm text-rose-800 font-semibold flex items-center justify-between shadow-xs">
+                <span>{{ session('error') }}</span>
+                <button onclick="this.parentElement.remove()" class="text-rose-600 hover:text-rose-800 font-bold ml-2">Tutup</button>
             </div>
         @endif
 
@@ -131,7 +147,7 @@
                     Halo, <span class="text-emerald-600">{{ auth()->user()->name }}!</span>
                 </h1>
                 <p class="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
-                    Pantau nutrisi dan kelola sirkulasi air tanaman hidroponik Anda.
+                    Pantau nutrisi, derajat keasaman, dan kelola sirkulasi air tanaman hidroponik Anda.
                 </p>
             </div>
 
@@ -148,6 +164,12 @@
             </div>
         </div>
 
+        @php
+            $pumpsList = $device->getPumpsList();
+            $sensorsList = $device->getSensorsList();
+            $hasPhSensor = $device->hasPh();
+        @endphp
+
         <!-- 4 Kotak Navigasi Cepat -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             
@@ -163,7 +185,7 @@
                 <span class="text-[11px] text-slate-400 mt-0.5 truncate max-w-[130px]">{{ $device->location }}</span>
             </div>
 
-            <!-- 2. Kondisi Nutrisi Tanaman -->
+            <!-- 2. Kondisi Nutrisi & pH Tanaman -->
             <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs hover:shadow-md transition cursor-pointer flex flex-col items-center text-center group">
                 <div class="w-11 h-11 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center mb-2.5 group-hover:scale-105 transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -173,20 +195,22 @@
                 </div>
                 <span class="text-xs sm:text-sm font-bold text-slate-700">Kondisi Tanaman</span>
                 <span class="text-[11px] text-emerald-600 font-semibold mt-0.5">
-                    {{ $device->has_tds ? 'Nutrisi Terpantau' : 'Pemantauan Aktif' }}
+                    {{ $hasPhSensor ? 'Nutrisi & pH Aktif' : 'Nutrisi Terpantau' }}
                 </span>
             </div>
 
             <!-- 3. Sirkulasi Pompa Air / Status Alat -->
-            @if($device->has_pump)
+            @if(count($pumpsList) > 0)
                 <a href="#control-section" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs hover:shadow-md transition cursor-pointer flex flex-col items-center text-center group">
                     <div class="w-11 h-11 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mb-2.5 group-hover:scale-105 transition">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
                         </svg>
                     </div>
-                    <span class="text-xs sm:text-sm font-bold text-slate-700">Sirkulasi Pompa</span>
-                    <span class="text-[11px] text-slate-400 mt-0.5" id="quickPumpStatus">Pompa: {{ $device->pump_status ? 'Menyala' : 'Mati' }}</span>
+                    <span class="text-xs sm:text-sm font-bold text-slate-700">Sirkulasi & Pupuk</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5" id="quickPumpStatus">
+                        {{ count($pumpsList) > 1 ? count($pumpsList) . ' Pompa Aktif' : 'Pompa: ' . ($device->pump_status ? 'Menyala' : 'Mati') }}
+                    </span>
                 </a>
             @else
                 <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs flex flex-col items-center text-center">
@@ -227,15 +251,16 @@
 
                 <!-- Aksi Khusus Admin -->
                 @if(auth()->check() && auth()->user()->isAdmin())
-                    <div class="flex flex-wrap items-center gap-1.5">
-                        <button onclick="toggleModal('editDeviceModal')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white shadow-xs transition">
-                            Atur Fitur Alat
-                        </button>
-                        <button onclick="toggleModal('createDeviceModal')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition">
-                            + Tambah Alat
-                        </button>
-                        <button onclick="toggleModal('createUserModal')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white shadow-xs transition">
-                            + Akun Petani
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('admin.manage') }}" class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition flex items-center gap-1.5 shadow-xs">
+                            <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <span>Panel Manajemen (CRUD)</span>
+                        </a>
+                        <button onclick="toggleModal('jsonInspectorModal')" class="px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition">
+                            Uji JSON
                         </button>
                     </div>
                 @endif
@@ -265,7 +290,7 @@
                     </div>
                 </div>
 
-                <!-- Fitur yang Terpasang pada Alat Ini -->
+                <!-- Fitur & Sensor yang Terpasang pada Alat Ini (Modular Discovery) -->
                 <div class="mb-4 flex flex-wrap items-center gap-1.5 text-[11px]">
                     <span class="text-slate-400 font-semibold mr-1">Fitur Terpasang:</span>
                     @if($device->has_tds)
@@ -274,7 +299,12 @@
                     @if($device->has_temp)
                         <span class="px-2 py-0.5 rounded-md bg-amber-900/60 border border-amber-500/30 text-amber-300 font-medium">Sensor Suhu Air</span>
                     @endif
-                    @if($device->has_pump)
+                    @if($hasPhSensor)
+                        <span class="px-2 py-0.5 rounded-md bg-violet-900/60 border border-violet-500/30 text-violet-300 font-medium">Sensor pH Air</span>
+                    @endif
+                    @if(count($pumpsList) > 1)
+                        <span class="px-2 py-0.5 rounded-md bg-blue-900/60 border border-blue-500/30 text-blue-300 font-medium">{{ count($pumpsList) }} Pompa Terpasang</span>
+                    @elseif($device->has_pump)
                         <span class="px-2 py-0.5 rounded-md bg-blue-900/60 border border-blue-500/30 text-blue-300 font-medium">Pompa Sirkulasi</span>
                     @else
                         <span class="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-400 font-medium">Tanpa Pompa</span>
@@ -309,9 +339,17 @@
             </div>
         </div>
 
-        <!-- Kotak Parameter Sensor yang Aktif (Dinamis Sesuai Kustomisasi Alat) -->
+        <!-- Kotak Parameter Sensor yang Aktif (Dinamis Sesuai NoSQL JSON Schema) -->
         @php
-            $featureCardsCount = ($device->has_temp ? 1 : 0) + ($device->has_tds ? 1 : 0) + (($device->has_auto_mode && $device->has_tds) ? 1 : 0) + ($device->has_pump ? 1 : 0);
+            $customSensorsList = [];
+            if (!empty($device->extra_sensors) && is_array($device->extra_sensors)) {
+                foreach ($device->extra_sensors as $sk => $sv) {
+                    if (!in_array(strtolower($sk), ['temperature', 'temp', 'tds', 'ph', 'voltage', 'pump', 'auto', 'pumps', 'sensors', 'device_code', 'api_key'])) {
+                        $customSensorsList[$sk] = $sv;
+                    }
+                }
+            }
+            $featureCardsCount = ($device->has_temp ? 1 : 0) + ($device->has_tds ? 1 : 0) + ($hasPhSensor ? 1 : 0) + (($device->has_auto_mode && $device->has_tds) ? 1 : 0) + ($device->has_pump ? 1 : 0) + count($customSensorsList);
         @endphp
 
         <div class="grid grid-cols-1 sm:grid-cols-2 {{ $featureCardsCount >= 4 ? 'lg:grid-cols-4' : ($featureCardsCount == 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2') }} gap-3.5 sm:gap-4">
@@ -356,7 +394,27 @@
                 </div>
             @endif
 
-            <!-- Parameter 3: Target Kebutuhan Nutrisi (Jika Aktif) -->
+            <!-- Parameter 3: Derajat Keasaman Air (pH) (Jika Aktif) -->
+            @if($hasPhSensor)
+                <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm relative overflow-hidden group hover:border-violet-200 transition">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Derajat Keasaman</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-violet-50 text-violet-700">Optimal</span>
+                    </div>
+                    <div class="flex items-baseline gap-1 mt-1">
+                        <span id="telemetryPh" class="text-3xl sm:text-4xl font-extrabold text-violet-600 tracking-tight">
+                            {{ number_format($device->ph ?? 6.2, 2) }}
+                        </span>
+                        <span class="text-sm font-bold text-slate-400">pH</span>
+                    </div>
+                    <div class="mt-3 text-[11px] text-slate-500 flex items-center justify-between">
+                        <span>Rentang Baik</span>
+                        <span class="font-semibold text-slate-700">5.5 - 6.5 pH</span>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Parameter 4: Target Kebutuhan Nutrisi (Jika Aktif) -->
             @if($device->has_auto_mode && $device->has_tds)
                 <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm relative overflow-hidden group hover:border-emerald-200 transition">
                     <div class="flex items-center justify-between mb-2">
@@ -376,8 +434,8 @@
                 </div>
             @endif
 
-            <!-- Parameter 4: Status Pompa Sirkulasi (Jika Aktif) -->
-            @if($device->has_pump)
+            <!-- Parameter 5: Status Pompa Utama (Jika Hanya 1 Pompa) -->
+            @if($device->has_pump && count($pumpsList) <= 1)
                 <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm relative overflow-hidden group hover:border-emerald-200 transition">
                     <div class="flex items-center justify-between mb-2">
                         <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Pompa Sirkulasi</span>
@@ -398,25 +456,52 @@
                 </div>
             @endif
 
+            <!-- Parameter Modular Tambahan (NoSQL Dynamic Sensors) -->
+            @foreach($customSensorsList as $cKey => $cVal)
+                <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm relative overflow-hidden group hover:border-teal-200 transition">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">
+                            {{ \Illuminate\Support\Str::headline(str_replace(['_', '-'], ' ', $cKey)) }}
+                        </span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-teal-50 text-teal-700">Modular</span>
+                    </div>
+                    <div class="flex items-baseline gap-1 mt-1">
+                        <span class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+                            @if(is_numeric($cVal))
+                                {{ (float)$cVal == (int)$cVal ? (int)$cVal : number_format((float)$cVal, 2) }}
+                            @elseif(is_bool($cVal))
+                                {{ $cVal ? 'AKTIF' : 'MATI' }}
+                            @else
+                                {{ $cVal }}
+                            @endif
+                        </span>
+                    </div>
+                    <div class="mt-3 text-[11px] text-slate-500 flex items-center justify-between">
+                        <span>Kunci NoSQL</span>
+                        <span class="font-semibold text-slate-700 font-mono text-[10px]">{{ $cKey }}</span>
+                    </div>
+                </div>
+            @endforeach
+
         </div>
 
-        <!-- Section: Kendali Pompa & Target Nutrisi (Hanya Jika Alat Memiliki Pompa atau Target Nutrisi) -->
-        @if($device->has_pump || ($device->has_tds && $device->has_auto_mode))
+        <!-- Section: Kendali Pompa & Target Nutrisi (Modular Multi-Pumps) -->
+        @if(count($pumpsList) > 0 || ($device->has_tds && $device->has_auto_mode))
             <div id="control-section" class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm space-y-6">
                 
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
                     <div>
                         <h3 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
                             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                            Pengaturan Kendali Kebun
+                            Pengaturan Kendali Pompa & Pupuk
                         </h3>
                         <p class="text-xs text-slate-500 mt-0.5">
-                            Atur pompa air dan sesuaikan dosis kebutuhan nutrisi tanaman Anda secara langsung.
+                            Kontrol pompa sirkulasi, pompa pupuk nutrisi, dan sesuaikan dosis tanaman secara langsung.
                         </p>
                     </div>
 
                     <!-- Pemilih Mode Kerja (Jika Mendukung Mode Otomatis) -->
-                    @if($device->has_auto_mode && $device->has_pump)
+                    @if($device->has_auto_mode && count($pumpsList) > 0)
                         <div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200/80 self-start sm:self-auto">
                             <button onclick="setMode(true)" id="btnSelectAuto" class="px-4 py-2 rounded-xl text-xs font-bold transition shadow-xs {{ $device->auto_mode ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-200' }}">
                                 Mode Otomatis
@@ -428,8 +513,36 @@
                     @endif
                 </div>
 
-                <!-- Bagian 1: Saklar Pompa Air (Jika Terpasang Pompa) -->
-                @if($device->has_pump)
+                <!-- Bagian 1: Saklar Pompa Air (Mendukung Multi-Pompa: 1 s/d 5 Pompa Pupuk & pH) -->
+                @if(count($pumpsList) > 1)
+                    <!-- Tampilan Grid Khusus Multi-Pompa (Misal 5 Pompa) -->
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">
+                                Daftar Saklar Pompa ({{ count($pumpsList) }} Pompa Terpasang)
+                            </label>
+                            <span class="text-[11px] font-semibold text-slate-400">Dapat dikontrol terpisah</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            @foreach($pumpsList as $p)
+                                <div class="p-4 rounded-2xl border border-slate-200/80 bg-slate-50 flex items-center justify-between gap-3 shadow-xs hover:border-emerald-200 transition" id="pumpCard_{{ $p['key'] }}">
+                                    <div>
+                                        <span class="text-xs font-extrabold text-slate-800 block">{{ $p['name'] }}</span>
+                                        <span class="text-[11px] text-slate-500 mt-0.5 block" id="pumpStatusLabel_{{ $p['key'] }}">
+                                            Status: <b class="{{ $p['status'] ? 'text-emerald-600' : 'text-slate-400' }}">{{ $p['status'] ? 'Menyala' : 'Mati' }}</b>
+                                        </span>
+                                    </div>
+                                    <button onclick="toggleSpecificPump('{{ $p['key'] }}', {{ $p['status'] ? 'false' : 'true' }})" id="btnToggle_{{ $p['key'] }}"
+                                        class="px-3.5 py-2 rounded-xl text-xs font-bold text-white transition shadow-xs {{ $p['status'] ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700' }}">
+                                        {{ $p['status'] ? 'Matikan' : 'Nyalakan' }}
+                                    </button>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @elseif(count($pumpsList) === 1)
+                    <!-- Tampilan Saklar Tunggal Klasik -->
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
                             1. Saklar Pompa Sirkulasi Air
@@ -460,10 +573,10 @@
 
                 <!-- Bagian 2: Pengaturan Target Nutrisi Tanaman (Jika Mendukung Nutrisi) -->
                 @if($device->has_tds)
-                    <div class="pt-2 {{ $device->has_pump ? 'border-t border-slate-100' : '' }}">
+                    <div class="pt-2 {{ count($pumpsList) > 0 ? 'border-t border-slate-100' : '' }}">
                         <div class="flex items-center justify-between mb-2">
                             <label class="text-xs font-bold uppercase tracking-wider text-slate-400">
-                                {{ $device->has_pump ? '2. Target Kepekatan Nutrisi' : '1. Target Kepekatan Nutrisi' }}
+                                Target Kepekatan Nutrisi
                             </label>
                             <span class="text-xs font-bold text-emerald-600" id="sliderValueBadge">{{ number_format($device->target_tds, 0) }} PPM</span>
                         </div>
@@ -528,6 +641,12 @@
                             <span>Suhu (°C)</span>
                         </div>
                     @endif
+                    @if($hasPhSensor)
+                        <div class="flex items-center gap-1.5 text-violet-600">
+                            <span class="w-3 h-3 rounded-full bg-violet-500"></span>
+                            <span>pH Air</span>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -557,12 +676,16 @@
                             @if($device->has_tds)
                                 <th class="py-2.5 px-3">Kepekatan Nutrisi</th>
                             @endif
-                            @if($device->has_pump)
+                            @if($hasPhSensor)
+                                <th class="py-2.5 px-3">pH Air</th>
+                            @endif
+                            @if(count($pumpsList) > 0)
                                 <th class="py-2.5 px-3">Status Pompa</th>
                             @endif
                             @if($device->has_auto_mode)
                                 <th class="py-2.5 px-3">Mode Kerja</th>
                             @endif
+                            <th class="py-2.5 px-3 text-right">Dokumen NoSQL</th>
                         </tr>
                     </thead>
                     <tbody id="telemetryTableBody" class="divide-y divide-slate-50 text-slate-700 font-medium">
@@ -575,7 +698,10 @@
                                 @if($device->has_tds)
                                     <td class="py-2.5 px-3 font-bold text-emerald-600">{{ number_format($reading->tds, 0) }} PPM</td>
                                 @endif
-                                @if($device->has_pump)
+                                @if($hasPhSensor)
+                                    <td class="py-2.5 px-3 font-bold text-violet-600">{{ $reading->ph !== null ? number_format($reading->ph, 2) : '-' }}</td>
+                                @endif
+                                @if(count($pumpsList) > 0)
                                     <td class="py-2.5 px-3">
                                         <span class="px-2 py-0.5 rounded-md text-[10px] font-bold {{ $reading->pump_status ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600' }}">
                                             {{ $reading->pump_status ? 'Menyala' : 'Mati' }}
@@ -589,10 +715,16 @@
                                         </span>
                                     </td>
                                 @endif
+                                <td class="py-2.5 px-3 text-right">
+                                    <button type="button" onclick="showJsonDoc({{ json_encode($reading->raw_payload ?: ['waktu' => $reading->created_at->format('H:i:s'), 'temperature' => $reading->temperature, 'tds' => $reading->tds, 'ph' => $reading->ph, 'pump' => $reading->pump_status, 'auto' => $reading->auto_mode]) }})" 
+                                        class="px-2 py-0.5 rounded-md font-mono text-[10px] bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-800 font-bold transition">
+                                        Lihat JSON
+                                    </button>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="py-6 text-center text-slate-400">Belum ada catatan riwayat data untuk instalasi ini.</td>
+                                <td colspan="7" class="py-6 text-center text-slate-400">Belum ada catatan riwayat data untuk instalasi ini.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -602,7 +734,7 @@
 
     </main>
 
-    <!-- Modal Lengkap: Buku Panduan Penggunaan & Pengaturan (Super Ramah Petani & Admin) -->
+    <!-- Modal Lengkap: Buku Panduan Penggunaan & Pengaturan (Ramah Petani & Admin) -->
     <div id="guideModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs hidden">
         <div class="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
             
@@ -634,92 +766,53 @@
                 <!-- Tab 1: Pemantauan & Kendali Pompa -->
                 <div id="tabContent-monitor" class="space-y-3">
                     <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100">
-                        <span class="font-bold text-emerald-950 block mb-1">1. Membaca Data Nutrisi & Suhu:</span>
+                        <span class="font-bold text-emerald-950 block mb-1">1. Membaca Data Nutrisi, pH, & Suhu:</span>
                         <p class="text-xs text-emerald-900 leading-relaxed">
-                            Nilai <b>Kepekatan Nutrisi (PPM)</b> menunjukkan kadar kepekatan larutan makanan tanaman hidroponik Anda. Nilai <b>Suhu Air (°C)</b> menunjukkan suhu tandon nutrisi tanaman agar perakaran tetap segar dan tidak mudah busuk.
+                            Nilai <b>Kepekatan Nutrisi (PPM)</b> menunjukkan kadar makanan tanaman. Nilai <b>Derajat Keasaman (pH)</b> idealnya berada di kisaran 5.5 - 6.5 agar akar dapat menyerap pupuk secara optimal. Nilai <b>Suhu Air (°C)</b> memastikan air tandon tetap segar (22 - 28 °C).
                         </p>
                     </div>
 
                     <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                        <span class="font-bold text-slate-900 block mb-1">2. Cara Menyalakan dan Mematikan Pompa via Web:</span>
+                        <span class="font-bold text-slate-900 block mb-1">2. Kendali Pompa Sirkulasi & Multi-Pompa Pupuk:</span>
                         <ul class="list-disc list-inside space-y-1 text-xs text-slate-700">
-                            <li>Klik tombol hijau <b>Nyalakan Pompa</b> untuk menjalankan sirkulasi air kapan saja.</li>
-                            <li>Klik tombol merah <b>Matikan Pompa</b> untuk menghentikan sirkulasi air jika sedang perbaikan atau pengurasan.</li>
-                            <li>Pada layar HP, Anda juga dapat menekan <b>tombol bulat hijau di bagian tengah bawah</b> untuk saklar cepat.</li>
+                            <li>Klik tombol <b>Nyalakan / Matikan</b> pada masing-masing pompa untuk menghidupkan atau mematikan sirkulasi atau dosis pupuk.</li>
+                            <li>Jika alat dilengkapi beberapa pompa (misal pompa pupuk A, pupuk B, pH down), seluruh pompa dapat dikontrol secara mandiri.</li>
                         </ul>
                     </div>
 
                     <div class="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-100">
                         <span class="font-bold text-blue-950 block mb-1">3. Mode Otomatis vs Mode Manual:</span>
                         <p class="text-xs text-blue-900 leading-relaxed mb-1.5">
-                            <b>Mode Otomatis:</b> Sistem secara mandiri menjaga sirkulasi dan kecukupan nutrisi tanaman berdasarkan target PPM yang Anda tentukan.
+                            <b>Mode Otomatis:</b> Sistem secara mandiri mengatur sirkulasi air berdasarkan target dosis yang ditentukan.
                         </p>
                         <p class="text-xs text-blue-900 leading-relaxed">
-                            <b>Mode Manual:</b> Anda memiliki kendali penuh menyalakan atau mematikan pompa air tanpa campur tangan otomatis.
-                        </p>
-                    </div>
-
-                    <div class="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-100">
-                        <span class="font-bold text-amber-950 block mb-1">4. Rekomendasi Target Nutrisi Tanaman:</span>
-                        <p class="text-xs text-amber-900 leading-relaxed">
-                            Gunakan tombol cepat rekomendasi tanaman pada panel pengaturan: Selada (700 PPM), Pakcoy (900 PPM), Bayam (1100 PPM), atau Tomat (1500 PPM).
+                            <b>Mode Manual:</b> Petani bebas mengendalikan hidup dan matinya pompa air secara manual.
                         </p>
                     </div>
                 </div>
 
-                <!-- Tab 2: Akun & Kustomisasi Alat (Untuk Admin & Petani) -->
+                <!-- Tab 2: Akun & Kustomisasi Alat (Untuk Admin) -->
                 <div id="tabContent-admin" class="space-y-3 hidden">
-                    <div class="p-3.5 rounded-2xl bg-purple-50/70 border border-purple-100">
-                        <span class="font-bold text-purple-950 block mb-1">1. Sistem Akun Pengguna & Pembagian Instalasi:</span>
-                        <p class="text-xs text-purple-900 leading-relaxed mb-1.5">
-                            <b>Akun Petani:</b> Ketika login, petani hanya melihat dan mengendalikan instalasi kebun yang ditugaskan kepada mereka (misalnya Akun Sumedang mengelola unit Sumedang).
-                        </p>
-                        <p class="text-xs text-purple-900 leading-relaxed">
-                            <b>Akun Administrator:</b> Dapat melihat semua instalasi kebun, menambahkan alat baru, membuat akun petani, dan mengatur fitur masing-masing alat.
-                        </p>
-                    </div>
-
                     <div class="p-3.5 rounded-2xl bg-teal-50/70 border border-teal-100">
-                        <span class="font-bold text-teal-950 block mb-1">2. Kustomisasi Fitur Tiap Alat (Sesuai Kebutuhan Lapangan):</span>
+                        <span class="font-bold text-teal-950 block mb-1">Kustomisasi Modular Tanpa Batas (NoSQL JSON):</span>
                         <p class="text-xs text-teal-900 leading-relaxed mb-1.5">
-                            Setiap instalasi kebun memiliki kebutuhan berbeda. Administrator dapat mengatur kelengkapan fitur tiap alat melalui tombol <b>Atur Fitur Alat</b>:
+                            Setiap alat kebun dapat dipasangi konfigurasi sensor dan pompa apa pun (misal hanya sensor nutrisi, atau paket lengkap pH + 5 pompa pupuk).
                         </p>
-                        <ul class="list-disc list-inside space-y-1 text-xs text-teal-900">
-                            <li><b>Hanya Sensor Nutrisi (TDS):</b> Jika kebun hanya butuh pemantauan nutrisi tanpa pompa.</li>
-                            <li><b>Multi Sensor (Nutrisi + Suhu):</b> Menampilkan nutrisi dan suhu secara bersamaan.</li>
-                            <li><b>Dengan Saklar Pompa Air:</b> Menampilkan tombol kontrol saklar sirkulasi air.</li>
-                            <li><b>Mode Otomatis Nutrisi:</b> Mengaktifkan pengaturan target dosis tanaman.</li>
-                        </ul>
-                    </div>
-
-                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                        <span class="font-bold text-slate-900 block mb-1">3. Cara Menghubungkan Akun Petani ke Alat:</span>
-                        <ol class="list-decimal list-inside space-y-1 text-xs text-slate-700">
-                            <li>Klik tombol <b>+ Akun Petani</b> untuk membuat akun pemilik kebun baru.</li>
-                            <li>Klik tombol <b>Atur Fitur Alat</b> pada instalasi yang ingin dihubungkan.</li>
-                            <li>Pada pilihan <b>Akun Pemilik / Petani</b>, pilih nama petani yang bersangkutan.</li>
-                            <li>Klik <b>Simpan Perubahan</b>. Petani tersebut kini dapat memantau alatnya langsung.</li>
-                        </ol>
+                        <p class="text-xs text-teal-900 leading-relaxed">
+                            Gunakan tombol <b>Uji Format JSON</b> di menu atas untuk memeriksa format data atau menguji pengiriman data secara langsung.
+                        </p>
                     </div>
                 </div>
 
                 <!-- Tab 3: Sambungan WiFi Alat Baru -->
                 <div id="tabContent-wifi" class="space-y-3 hidden">
-                    <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-emerald-950">
-                        <span class="font-bold block mb-1">Jika Sambungan Terputus atau Alat Baru:</span>
-                        <p class="text-xs leading-relaxed">
-                            Perangkat alat secara otomatis memancarkan jaringan WiFi sendiri bernama <b>SMART-HYDROPONIC</b> jika belum terhubung ke internet kebun.
-                        </p>
-                    </div>
-
                     <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-700">
                         <span class="font-bold block mb-2 text-slate-900">Langkah Menghubungkan WiFi Mandiri:</span>
                         <ol class="list-decimal list-inside space-y-2 text-xs">
-                            <li>Buka menu sambungan WiFi di HP Anda, pilih jaringan bernama <b>SMART-HYDROPONIC</b> (Kata sandi: <b>12345678</b>).</li>
-                            <li>Buka peramban (browser Google Chrome atau Safari) di HP Anda, lalu ketik alamat: <b>192.168.4.1</b></li>
-                            <li>Pilih atau masukkan nama WiFi kebun Anda beserta kata sandinya.</li>
-                            <li>Masukkan kode alat kebun Anda (misal: <b>alat1sumedang</b>).</li>
-                            <li>Klik tombol <b>Simpan & Sambungkan</b>. Alat akan otomatis terhubung ke internet dan halaman web ini akan langsung menampilkan data kebun Anda.</li>
+                            <li>Sambungkan HP ke WiFi cadangan alat bernama <b>SMART-HYDROPONIC</b> (Kata sandi: <b>12345678</b>).</li>
+                            <li>Buka peramban di HP dan ketik alamat: <b>192.168.4.1</b></li>
+                            <li>Masukkan nama WiFi kebun, kata sandinya, serta kode alat kebun Anda (misal: <b>alat1sumedang</b>).</li>
+                            <li>Klik <b>Simpan & Sambungkan</b>.</li>
                         </ol>
                     </div>
                 </div>
@@ -735,6 +828,83 @@
     </div>
 
     @if(auth()->check() && auth()->user()->isAdmin())
+        <!-- Modal: Uji & Periksa Format JSON (NoSQL Modular Inspector) -->
+        <div id="jsonInspectorModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs hidden">
+            <div class="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                    <div>
+                        <h3 class="text-base font-extrabold text-slate-900">Pemeriksa & Pengujian JSON Modular</h3>
+                        <p class="text-xs text-slate-500">Konsep NoSQL super fleksibel untuk alat: <b>{{ $device->device_code }}</b></p>
+                    </div>
+                    <button onclick="toggleModal('jsonInspectorModal')" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+                </div>
+
+                <div class="space-y-4 text-xs">
+                    <div class="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-950">
+                        <span class="font-bold block mb-1">Arsitektur Modular & Mandiri:</span>
+                        <p class="leading-relaxed">
+                            Alat Anda dapat mengirim struktur sensor dan pompa apa pun. Server otomatis mengenali data baru dan mengaitkannya ke alat ini tanpa perlu mengubah kode web.
+                        </p>
+                    </div>
+
+                    <!-- Tombol Cepat Pilihan Contoh Uji -->
+                    <div>
+                        <span class="block font-bold text-slate-700 mb-1.5">Pilih Contoh Format Uji Cepat:</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <button type="button" onclick="loadJsonPreset('standar')" class="p-2 rounded-xl bg-slate-100 hover:bg-emerald-50 border border-slate-200 text-left font-semibold text-slate-700">
+                                <span class="block font-bold">Paket Standar</span>
+                                <span class="text-[10px] text-slate-500">TDS + Suhu + 1 Pompa</span>
+                            </button>
+                            <button type="button" onclick="loadJsonPreset('lengkap')" class="p-2 rounded-xl bg-slate-100 hover:bg-violet-50 border border-slate-200 text-left font-semibold text-slate-700">
+                                <span class="block font-bold">Paket 5 Pompa + pH</span>
+                                <span class="text-[10px] text-slate-500">TDS + Suhu + pH + 5 Pompa</span>
+                            </button>
+                            <button type="button" onclick="loadJsonPreset('pantau')" class="p-2 rounded-xl bg-slate-100 hover:bg-amber-50 border border-slate-200 text-left font-semibold text-slate-700">
+                                <span class="block font-bold">Pos Pantau</span>
+                                <span class="text-[10px] text-slate-500">Hanya Sensor Nutrisi</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dokumen NoSQL Tersimpan di Database -->
+                    @if(!empty($device->last_payload))
+                        <div>
+                            <span class="block font-bold text-slate-700 mb-1">Dokumen NoSQL Terakhir di Database:</span>
+                            <pre class="w-full p-2.5 font-mono text-[10px] rounded-xl border border-slate-700 bg-slate-900 text-teal-300 overflow-x-auto max-h-32 custom-scrollbar">{{ json_encode($device->last_payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+                        </div>
+                    @endif
+
+                    <!-- Form Simulasi JSON -->
+                    <form action="{{ route('admin.devices.simulate', $device->id) }}" method="POST" class="space-y-3">
+                        @csrf
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Payload JSON yang Dikirim Alat:</label>
+                            <textarea id="jsonPayloadInput" name="payload_json" rows="8" required
+                                class="w-full p-3 font-mono text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 bg-slate-900 text-emerald-400">{
+  "temperature": 26.5,
+  "tds": 850,
+  "ph": 6.35,
+  "pumps": {
+    "pompa_sirkulasi": true,
+    "pompa_pupuk_a": false,
+    "pompa_pupuk_b": false,
+    "pompa_ph_up": false,
+    "pompa_ph_down": false
+  }
+}</textarea>
+                        </div>
+
+                        <div class="flex justify-end gap-2 pt-2">
+                            <button type="button" onclick="toggleModal('jsonInspectorModal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-bold">Tutup</button>
+                            <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-md shadow-indigo-600/20">
+                                Kirim & Terapkan Data
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal 2: Kustomisasi Fitur Alat yang Sedang Aktif (Admin Saja) -->
         <div id="editDeviceModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs hidden">
             <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -779,7 +949,6 @@
                                 </option>
                             @endforeach
                         </select>
-                        <span class="text-[11px] text-slate-400 mt-1 block">Petani yang dipilih hanya akan melihat alat ini di dasbor mereka.</span>
                     </div>
 
                     <!-- Kustomisasi Fitur Perangkat (Checkboxes) -->
@@ -799,9 +968,15 @@
                         </label>
 
                         <label class="flex items-center gap-2.5 cursor-pointer">
+                            <input type="checkbox" name="has_ph" value="1" {{ $hasPhSensor ? 'checked' : '' }}
+                                class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+                            <span class="text-xs text-slate-700 font-semibold">Sensor Derajat Keasaman (pH Air)</span>
+                        </label>
+
+                        <label class="flex items-center gap-2.5 cursor-pointer">
                             <input type="checkbox" name="has_pump" value="1" {{ $device->has_pump ? 'checked' : '' }}
                                 class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4">
-                            <span class="text-xs text-slate-700 font-semibold">Saklar & Kendali Pompa Sirkulasi Air</span>
+                            <span class="text-xs text-slate-700 font-semibold">Saklar Pompa Sirkulasi & Pupuk</span>
                         </label>
 
                         <label class="flex items-center gap-2.5 cursor-pointer">
@@ -809,6 +984,19 @@
                                 class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4">
                             <span class="text-xs text-slate-700 font-semibold">Mode Otomatis Nutrisi Tanaman</span>
                         </label>
+                    </div>
+
+                    <!-- Kustomisasi Multi-Pompa (Pisahkan dengan Koma) -->
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Daftar Pompa Terpasang (Pisahkan Koma)</label>
+                        @php
+                            $namesArray = array_column($pumpsList, 'name');
+                            $currentNamesString = implode(', ', $namesArray);
+                        @endphp
+                        <input type="text" name="pump_names" value="{{ $currentNamesString ?: 'Pompa Sirkulasi' }}" 
+                            placeholder="Contoh: Pompa Sirkulasi, Pompa Pupuk A, Pompa Pupuk B, Pompa pH Down"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 text-xs">
+                        <span class="text-[11px] text-slate-400 mt-1 block">Tulis nama tiap pompa. Sistem akan membuatkan tombol saklar terpisah untuk tiap pompa secara otomatis.</span>
                     </div>
 
                     <div>
@@ -886,12 +1074,12 @@
                                 <span class="text-xs text-slate-700 font-medium">Sensor Suhu</span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" name="has_pump" value="1" checked class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
-                                <span class="text-xs text-slate-700 font-medium">Pompa Sirkulasi</span>
+                                <input type="checkbox" name="has_ph" value="1" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                                <span class="text-xs text-slate-700 font-medium">Sensor pH Air</span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" name="has_auto_mode" value="1" checked class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
-                                <span class="text-xs text-slate-700 font-medium">Mode Otomatis</span>
+                                <input type="checkbox" name="has_pump" value="1" checked class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                                <span class="text-xs text-slate-700 font-medium">Pompa Sirkulasi</span>
                             </label>
                         </div>
                     </div>
@@ -966,7 +1154,7 @@
                 <span class="text-[10px] font-bold">Beranda</span>
             </a>
 
-            @if($device->has_pump || $device->has_auto_mode)
+            @if(count($pumpsList) > 0 || $device->has_auto_mode)
                 <a href="#control-section" class="flex flex-col items-center gap-1 text-slate-400 hover:text-emerald-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
@@ -976,7 +1164,7 @@
             @endif
 
             <!-- Tombol Tengah Cepat Saklar Pompa (Jika Terpasang Pompa) -->
-            @if($device->has_pump)
+            @if(count($pumpsList) > 0)
                 <button onclick="quickTogglePump()" class="w-12 h-12 -mt-6 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/40 border-4 border-white transition active:scale-95" title="Saklar Pompa">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
@@ -1005,6 +1193,7 @@
         const DEVICE_CODE = "{{ $device->device_code }}";
         const HAS_TEMP = {{ $device->has_temp ? 'true' : 'false' }};
         const HAS_TDS = {{ $device->has_tds ? 'true' : 'false' }};
+        const HAS_PH = {{ $hasPhSensor ? 'true' : 'false' }};
         const HAS_PUMP = {{ $device->has_pump ? 'true' : 'false' }};
         const HAS_AUTO = {{ $device->has_auto_mode ? 'true' : 'false' }};
 
@@ -1031,6 +1220,12 @@
             @endforeach
         ];
 
+        const initialPhData = [
+            @foreach($historyPoints as $point)
+                {{ $point->ph !== null ? $point->ph : 6.2 }},
+            @endforeach
+        ];
+
         const chartDatasets = [];
         if (HAS_TDS) {
             chartDatasets.push({
@@ -1054,6 +1249,17 @@
                 borderDash: [4, 4],
                 tension: 0.3,
                 yAxisID: 'y1',
+            });
+        }
+        if (HAS_PH) {
+            chartDatasets.push({
+                label: 'pH Air',
+                data: initialPhData,
+                borderColor: '#8b5cf6',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                tension: 0.3,
+                yAxisID: 'y2',
             });
         }
 
@@ -1089,6 +1295,15 @@
                         display: HAS_TEMP,
                         position: 'right',
                         title: { display: true, text: 'Suhu (°C)', font: { size: 10 } },
+                        grid: { drawOnChartArea: false }
+                    },
+                    y2: {
+                        type: 'linear',
+                        display: HAS_PH,
+                        position: 'right',
+                        min: 4,
+                        max: 9,
+                        title: { display: true, text: 'pH Air', font: { size: 10 } },
                         grid: { drawOnChartArea: false }
                     }
                 }
@@ -1144,6 +1359,39 @@
                     btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 shrink-0';
                 }
             });
+        }
+
+        function loadJsonPreset(type) {
+            const textarea = document.getElementById('jsonPayloadInput');
+            if (type === 'standar') {
+                textarea.value = JSON.stringify({
+                    "temperature": 26.5,
+                    "tds": 850,
+                    "voltage": 1.65,
+                    "pumps": {
+                        "pompa_sirkulasi": true
+                    }
+                }, null, 2);
+            } else if (type === 'lengkap') {
+                textarea.value = JSON.stringify({
+                    "temperature": 26.0,
+                    "tds": 920,
+                    "ph": 6.35,
+                    "voltage": 1.68,
+                    "pumps": {
+                        "pompa_sirkulasi": true,
+                        "pompa_pupuk_a": false,
+                        "pompa_pupuk_b": false,
+                        "pompa_ph_up": false,
+                        "pompa_ph_down": false
+                    }
+                }, null, 2);
+            } else if (type === 'pantau') {
+                textarea.value = JSON.stringify({
+                    "tds": 780,
+                    "voltage": 1.55
+                }, null, 2);
+            }
         }
 
         function updateSliderLabel(val) {
@@ -1209,6 +1457,10 @@
             setPump(!currentPump);
         }
 
+        function toggleSpecificPump(pumpKey, targetState) {
+            sendControl({ pump_key: pumpKey, pump_state: targetState, auto: false });
+        }
+
         function setMode(isAuto) {
             currentAuto = isAuto;
             sendControl({ auto: isAuto });
@@ -1223,6 +1475,45 @@
                 return;
             }
             sendControl({ target_tds: val });
+        }
+
+        function loadJsonPreset(type) {
+            const el = document.getElementById('jsonPayloadInput');
+            if (!el) return;
+            let doc = {};
+            if (type === 'standar') {
+                doc = {
+                    temperature: 25.4,
+                    tds: 820.0,
+                    voltage: 1.25,
+                    pumps: {
+                        pompa_sirkulasi: true
+                    }
+                };
+            } else if (type === 'lengkap') {
+                doc = {
+                    temperature: 26.2,
+                    tds: 910.0,
+                    ph: 6.35,
+                    voltage: 1.30,
+                    pumps: {
+                        pompa_sirkulasi: true,
+                        pompa_pupuk_a: false,
+                        pompa_pupuk_b: false,
+                        pompa_ph_up: false,
+                        pompa_ph_down: false
+                    }
+                };
+            } else if (type === 'pantau') {
+                doc = {
+                    temperature: 24.8,
+                    tds: 780.0,
+                    ph: 6.2,
+                    water_level: 85,
+                    humidity: 68
+                };
+            }
+            el.value = JSON.stringify(doc, null, 2);
         }
 
         async function fetchLatestData() {
@@ -1241,6 +1532,9 @@
                     const tdsEl = document.getElementById('telemetryTds');
                     if (tdsEl) tdsEl.innerText = dev.tds.toFixed(0);
 
+                    const phEl = document.getElementById('telemetryPh');
+                    if (phEl && dev.ph !== null) phEl.innerText = dev.ph.toFixed(2);
+
                     const targetDisp = document.getElementById('telemetryTargetDisplay');
                     if (targetDisp) targetDisp.innerText = dev.target_tds.toFixed(0);
 
@@ -1249,7 +1543,11 @@
                     const pumpPulse = document.getElementById('pumpPulseDot');
 
                     if (pumpStatusEl) pumpStatusEl.innerText = dev.pump_status ? 'Menyala' : 'Mati';
-                    if (quickPump) quickPump.innerText = 'Pompa: ' + (dev.pump_status ? 'Menyala' : 'Mati');
+                    if (quickPump && dev.pumps_list && dev.pumps_list.length > 1) {
+                        quickPump.innerText = dev.pumps_list.length + ' Pompa Aktif';
+                    } else if (quickPump) {
+                        quickPump.innerText = 'Pompa: ' + (dev.pump_status ? 'Menyala' : 'Mati');
+                    }
 
                     if (dev.pump_status) {
                         if (pumpStatusEl) pumpStatusEl.className = 'text-3xl sm:text-4xl font-extrabold text-emerald-600 tracking-tight';
@@ -1257,6 +1555,22 @@
                     } else {
                         if (pumpStatusEl) pumpStatusEl.className = 'text-3xl sm:text-4xl font-extrabold text-slate-400 tracking-tight';
                         if (pumpPulse) pumpPulse.className = 'w-3 h-3 rounded-full bg-slate-300';
+                    }
+
+                    // Update multi-pump card status labels & buttons dynamically
+                    if (dev.pumps_list && Array.isArray(dev.pumps_list)) {
+                        dev.pumps_list.forEach(p => {
+                            const lbl = document.getElementById('pumpStatusLabel_' + p.key);
+                            const btn = document.getElementById('btnToggle_' + p.key);
+                            if (lbl) {
+                                lbl.innerHTML = `Status: <b class="${p.status ? 'text-emerald-600' : 'text-slate-400'}">${p.status ? 'Menyala' : 'Mati'}</b>`;
+                            }
+                            if (btn) {
+                                btn.innerText = p.status ? 'Matikan' : 'Nyalakan';
+                                btn.className = `px-3.5 py-2 rounded-xl text-xs font-bold text-white transition shadow-xs ${p.status ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'}`;
+                                btn.onclick = () => toggleSpecificPump(p.key, !p.status);
+                            }
+                        });
                     }
 
                     const pumpModeBadge = document.getElementById('pumpModeBadge');
@@ -1328,6 +1642,10 @@
                     }
                     if (HAS_TEMP && telemetryChart.data.datasets[datasetIdx]) {
                         telemetryChart.data.datasets[datasetIdx].data = data.history.map(item => item.temperature);
+                        datasetIdx++;
+                    }
+                    if (HAS_PH && telemetryChart.data.datasets[datasetIdx]) {
+                        telemetryChart.data.datasets[datasetIdx].data = data.history.map(item => item.ph !== null ? item.ph : 6.2);
                     }
                     telemetryChart.update();
 
@@ -1338,6 +1656,7 @@
                             <td class="py-2.5 px-3 font-mono text-slate-500">${row.time}</td>
                             ${HAS_TEMP ? `<td class="py-2.5 px-3 font-bold text-slate-800">${row.temperature.toFixed(1)} °C</td>` : ''}
                             ${HAS_TDS ? `<td class="py-2.5 px-3 font-bold text-emerald-600">${row.tds.toFixed(0)} PPM</td>` : ''}
+                            ${HAS_PH ? `<td class="py-2.5 px-3 font-bold text-violet-600">${row.ph !== null ? row.ph.toFixed(2) : '-'}</td>` : ''}
                             ${HAS_PUMP ? `
                                 <td class="py-2.5 px-3">
                                     <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${row.pump_status ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">
