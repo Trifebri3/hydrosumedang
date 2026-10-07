@@ -156,6 +156,55 @@ class AdminManagementTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_disable_and_enable_device_features_cleanly(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $petani = User::factory()->create(['role' => 'user']);
+
+        $device = Device::create([
+            'user_id' => $petani->id,
+            'device_code' => 'alat_fitur_test',
+            'api_key' => 'alat_fitur_test',
+            'name' => 'Kebun Fitur',
+            'location' => 'Sumedang',
+            'ph' => 6.2,
+            'has_tds' => true,
+            'has_temp' => true,
+            'has_ph' => true,
+            'has_pump' => true,
+            'has_auto_mode' => true,
+            'pump_controls' => [
+                ['key' => 'pompa_sirkulasi', 'name' => 'Pompa Sirkulasi', 'status' => true],
+            ],
+        ]);
+
+        $this->assertTrue($device->hasPh());
+        $this->assertCount(1, $device->getPumpsList());
+
+        // Admin disables pH, pump, auto mode
+        $response = $this->actingAs($admin)->put(route('admin.devices.update', $device->id), [
+            'name' => 'Kebun Fitur Minimalis',
+            'device_code' => 'alat_fitur_test',
+            'location' => 'Sumedang Kota',
+            'user_id' => $petani->id,
+            'target_tds' => 800,
+            'has_tds' => 1,
+            'has_temp' => 1,
+            // has_ph, has_pump, has_auto_mode are unchecked / omitted
+        ]);
+
+        $response->assertRedirect();
+
+        $device->refresh();
+        $this->assertFalse($device->has_ph);
+        $this->assertFalse($device->hasPh());
+        $this->assertNull($device->ph);
+        $this->assertFalse($device->has_pump);
+        $this->assertCount(0, $device->getPumpsList());
+        $this->assertFalse($device->has_auto_mode);
+        $this->assertFalse($device->auto_mode);
+    }
+
     public function test_admin_can_crud_users(): void
     {
         $admin = User::factory()->create(['role' => 'admin', 'username' => 'admin_super']);

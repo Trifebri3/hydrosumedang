@@ -133,10 +133,17 @@
                 <button onclick="this.parentElement.remove()" class="text-emerald-600 hover:text-emerald-800 font-bold ml-2">Tutup</button>
             </div>
         @endif
-        @if(session('error'))
-            <div class="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs sm:text-sm text-rose-800 font-semibold flex items-center justify-between shadow-xs">
-                <span>{{ session('error') }}</span>
-                <button onclick="this.parentElement.remove()" class="text-rose-600 hover:text-rose-800 font-bold ml-2">Tutup</button>
+        @if(session('error') || $errors->any())
+            <div class="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs sm:text-sm text-rose-800 font-semibold space-y-1 shadow-xs">
+                @if(session('error'))
+                    <div>{{ session('error') }}</div>
+                @endif
+                @foreach($errors->all() as $err)
+                    <div>&bull; {{ $err }}</div>
+                @endforeach
+                <div class="text-right">
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-rose-600 hover:text-rose-800 font-bold ml-2">Tutup</button>
+                </div>
             </div>
         @endif
 
@@ -941,11 +948,10 @@
 
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Hubungkan ke Akun Petani</label>
-                        <select name="user_id" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 text-xs font-semibold">
-                            <option value="">-- Semua Petani / Terbuka --</option>
+                        <select name="user_id" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 text-xs font-semibold">
                             @foreach($allUsers as $u)
                                 <option value="{{ $u->id }}" {{ $device->user_id === $u->id ? 'selected' : '' }}>
-                                    {{ $u->name }} ({{ $u->email }})
+                                    {{ $u->name }} ({{ $u->email }}) [{{ $u->role }}]
                                 </option>
                             @endforeach
                         </select>
@@ -968,7 +974,7 @@
                         </label>
 
                         <label class="flex items-center gap-2.5 cursor-pointer">
-                            <input type="checkbox" name="has_ph" value="1" {{ $hasPhSensor ? 'checked' : '' }}
+                            <input type="checkbox" name="has_ph" value="1" {{ $device->has_ph ? 'checked' : '' }}
                                 class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4">
                             <span class="text-xs text-slate-700 font-semibold">Sensor Derajat Keasaman (pH Air)</span>
                         </label>

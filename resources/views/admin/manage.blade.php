@@ -563,7 +563,7 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Target Nutrisi (PPM)</label>
-                        <input type="number" id="editDeviceTargetTds" name="target_tds" min="100" max="3000" required
+                        <input type="number" id="editDeviceTargetTds" name="target_tds" min="100" max="3000" step="any" required
                             class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 text-xs">
                     </div>
                     <div>
@@ -779,12 +779,12 @@
 
             document.getElementById('editDeviceHasTds').checked = !!device.has_tds;
             document.getElementById('editDeviceHasTemp').checked = !!device.has_temp;
-            document.getElementById('editDeviceHasPh').checked = !!(device.has_ph || device.ph !== null);
+            document.getElementById('editDeviceHasPh').checked = !!device.has_ph;
             document.getElementById('editDeviceHasPump').checked = !!device.has_pump;
             document.getElementById('editDeviceHasAuto').checked = !!device.has_auto_mode;
 
             let pumpNames = [];
-            if (device.pump_controls && Array.isArray(device.pump_controls)) {
+            if (device.has_pump && device.pump_controls && Array.isArray(device.pump_controls)) {
                 pumpNames = device.pump_controls.map(p => p.name || p.key);
             }
             document.getElementById('editDevicePumpNames').value = pumpNames.join(', ');

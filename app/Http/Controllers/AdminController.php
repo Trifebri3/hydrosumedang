@@ -146,11 +146,11 @@ class AdminController extends Controller
             'pump_names' => ['nullable', 'string'],
         ]);
 
-        $hasTds = $request->has('has_tds');
-        $hasTemp = $request->has('has_temp');
-        $hasPh = $request->has('has_ph');
-        $hasPump = $request->has('has_pump');
-        $hasAuto = $request->has('has_auto_mode');
+        $hasTds = $request->boolean('has_tds');
+        $hasTemp = $request->boolean('has_temp');
+        $hasPh = $request->boolean('has_ph');
+        $hasPump = $request->boolean('has_pump');
+        $hasAuto = $request->boolean('has_auto_mode');
 
         $updateData = [
             'name' => $validated['name'],
@@ -165,31 +165,64 @@ class AdminController extends Controller
             'has_auto_mode' => $hasAuto,
         ];
 
-        if (! empty($validated['device_code'])) {
-            $updateData['device_code'] = strtolower($validated['device_code']);
-            $updateData['api_key'] = strtolower($validated['device_code']);
+        // Jika sensor pH dinonaktifkan, kosongkan nilai ph saat ini
+        if (! $hasPh) {
+            $updateData['ph'] = null;
         }
 
-        // Handle custom multi-pump list (e.g. 5 pompa pupuk)
-        if ($request->filled('pump_names')) {
-            $rawNames = explode(',', $request->input('pump_names'));
-            $newPumps = [];
-            foreach ($rawNames as $rName) {
-                $trimmed = trim($rName);
-                if (! empty($trimmed)) {
-                    $slug = Str::slug($trimmed, '_');
-                    $newPumps[] = [
-                        'key' => $slug,
-                        'name' => $trimmed,
-                        'status' => false,
-                    ];
+        // Jika mode otomatis dinonaktifkan, matikan juga status otomatis aktif
+        if (! $hasAuto) {
+            $updateData['auto_mode'] = false;
+        }
+
+        if (! empty($validated['device_code'])) {
+            $newCode = strtolower(trim($validated['device_code']));
+            $updateData['device_code'] = $newCode;
+            $updateData['api_key'] = $newCode;
+        }
+
+        // Penanganan pompa modular terpasang
+        if ($hasPump) {
+            $pumpsList = [];
+            if ($request->filled('pump_names')) {
+                $rawNames = explode(',', $request->input('pump_names'));
+                foreach ($rawNames as $rName) {
+                    $trimmed = trim($rName);
+                    if (! empty($trimmed)) {
+                        $slug = Str::slug($trimmed, '_');
+                        // Pertahankan status pompa jika key sama
+                        $existingStatus = false;
+                        if (is_array($device->pump_controls)) {
+                            foreach ($device->pump_controls as $oldPump) {
+                                if (($oldPump['key'] ?? '') === $slug) {
+                                    $existingStatus = (bool) ($oldPump['status'] ?? false);
+                                    break;
+                                }
+                            }
+                        }
+                        $pumpsList[] = [
+                            'key' => $slug,
+                            'name' => $trimmed,
+                            'status' => $existingStatus,
+                        ];
+                    }
                 }
             }
-            if (! empty($newPumps)) {
-                $updateData['pump_controls'] = $newPumps;
-                $updateData['pump_count'] = count($newPumps);
-                $updateData['has_pump'] = true;
+
+            if (empty($pumpsList)) {
+                $pumpsList = [
+                    ['key' => 'pompa_sirkulasi', 'name' => 'Pompa Sirkulasi', 'status' => (bool) $device->pump_status],
+                ];
             }
+
+            $updateData['pump_controls'] = $pumpsList;
+            $updateData['pump_count'] = count($pumpsList);
+            $updateData['has_pump'] = true;
+        } else {
+            $updateData['has_pump'] = false;
+            $updateData['pump_count'] = 0;
+            $updateData['pump_status'] = false;
+            $updateData['pump_controls'] = [];
         }
 
         $device->update($updateData);

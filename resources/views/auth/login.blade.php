@@ -77,23 +77,8 @@
             </button>
         </form>
 
-        <!-- Pilihan Masuk Cepat -->
         <div class="mt-6 pt-5 border-t border-slate-100 text-center">
-            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2.5">Akses Akun Cepat:</span>
-            
-            <div class="grid grid-cols-2 gap-2">
-                <a href="{{ route('quick-login', 'user') }}" class="p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 text-left transition block group">
-                    <div class="text-[11px] font-bold text-slate-800 group-hover:text-emerald-700">Akun Sumedang</div>
-                    <div class="text-[10px] text-slate-400">Khusus kebun Sumedang</div>
-                </a>
-
-                <a href="{{ route('quick-login', 'admin') }}" class="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition block group">
-                    <div class="text-[11px] font-bold text-slate-800">Administrator</div>
-                    <div class="text-[10px] text-slate-400">Kelola semua instalasi</div>
-                </a>
-            </div>
-
-            <p class="text-[11px] text-slate-400 mt-4">
+            <p class="text-[11px] text-slate-400">
                 Sistem tertutup terpadu. Hubungi administrator jika membutuhkan penambahan akun kebun baru.
             </p>
         </div>

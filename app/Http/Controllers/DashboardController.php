@@ -85,7 +85,7 @@ class DashboardController extends Controller
             ->reverse()
             ->values();
 
-        $allUsers = User::where('role', 'user')->get();
+        $allUsers = User::orderBy('name')->get();
 
         return view('dashboard', compact('device', 'devices', 'readings', 'historyPoints', 'allUsers'));
     }

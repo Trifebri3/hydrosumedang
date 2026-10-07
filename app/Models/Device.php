@@ -95,6 +95,10 @@ class Device extends Model
      */
     public function getPumpsList(): array
     {
+        if (! $this->has_pump) {
+            return [];
+        }
+
         if (! empty($this->pump_controls) && is_array($this->pump_controls)) {
             return $this->pump_controls;
         }
@@ -115,17 +119,13 @@ class Device extends Model
             }
         }
 
-        if ($this->has_pump) {
-            return [
-                [
-                    'key' => 'pompa_sirkulasi',
-                    'name' => 'Pompa Sirkulasi',
-                    'status' => (bool) $this->pump_status,
-                ],
-            ];
-        }
-
-        return [];
+        return [
+            [
+                'key' => 'pompa_sirkulasi',
+                'name' => 'Pompa Sirkulasi',
+                'status' => (bool) $this->pump_status,
+            ],
+        ];
     }
 
     /**
@@ -133,23 +133,7 @@ class Device extends Model
      */
     public function hasPh(): bool
     {
-        if ($this->has_ph || $this->ph !== null) {
-            return true;
-        }
-
-        if (! empty($this->extra_sensors) && isset($this->extra_sensors['ph'])) {
-            return true;
-        }
-
-        if (! empty($this->sensor_schema) && is_array($this->sensor_schema)) {
-            foreach ($this->sensor_schema as $s) {
-                if (($s['key'] ?? '') === 'ph') {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return (bool) $this->has_ph;
     }
 
     /**
