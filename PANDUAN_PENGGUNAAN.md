@@ -136,10 +136,30 @@ Jika perangkat alat di kebun belum tersambung ke internet atau kata sandi WiFi k
 
 1. Perangkat kebun secara otomatis akan memancarkan WiFi darurat sendiri bernama **SMART-HYDROPONIC**.
 2. Sambungkan ponsel atau laptop ke WiFi **SMART-HYDROPONIC** (Kata sandi: **12345678**).
-3. Buka peramban di alamat: **http://192.168.4.1**
+3. Buka peramban di alamat: **http://192.168.4.1** atau langsung ke **http://192.168.4.1/wifi**
 4. Pada portal lokal terdapat menu:
-   - **Pemantauan:** Memantau nilai sensor langsung dari alat secara offline.
-   - **Tools JSON (Modular):** Simulator untuk menguji format JSON modular (preset Standar, Tambah Sensor pH, dan Multi-Pompa Pupuk) langsung ke server.
-   - **Pengaturan:** Mengganti SSID WiFi, sandi WiFi, dan URL API server.
-5. Klik **Simpan & Sambungkan**. Alat akan segera terhubung ke server HydroSense dan data langsung tersaji pada dashboard web.
+   - **1. Pemantauan:** Memantau nilai sensor langsung dari alat secara offline (`http://192.168.4.1/`).
+   - **2. Sambung WiFi:** Memilih jaringan WiFi sekitar yang terdeteksi secara otomatis, mengisi sandi, menentukan kode alat, dan menyimpan alamat server (`http://192.168.4.1/wifi`).
+   - **3. Tools JSON:** Simulator pengujian struktur sensor dan multi-pompa langsung ke server (`http://192.168.4.1/tools`).
+5. Menu dapat berpindah secara instan melalui tombol tab maupun tautan menu langsung tanpa kendala macet.
+6. Klik **Simpan & Sambungkan ke Jaringan**. Alat akan otomatis terhubung ke internet dan data kebun langsung tersaji pada dashboard web.
+
+---
+
+## 8. Panduan Serial Monitor (Pemantauan Angka Langsung di Komputer)
+
+Saat alat dihubungkan ke komputer melalui kabel USB (Arduino IDE):
+1. Atur Baud Rate pada Serial Monitor ke **115200 baud**.
+2. Sistem akan secara teratur mencetak laporan angka sensor setiap 2 detik:
+   - **Waktu Sistem:** Waktu aktif berjalan dalam satuan detik.
+   - **Kode Alat:** Identitas unit (contoh: `alat1sumedang`).
+   - **Suhu Air:** Derajat suhu air presisi (contoh: `25.40 C`).
+   - **Nutrisi TDS:** Nilai kepekatan nutrisi terukur (contoh: `820.5 PPM`).
+   - **Tegangan ADC:** Nilai tegangan sensor analog (contoh: `1.245 Volt`).
+   - **Target Nutrisi:** Angka target nutrisi yang berlaku (contoh: `800.0 PPM`).
+   - **Status Pompa:** Status saklar (`MENYALA (ON)` atau `MATI (OFF)`).
+   - **Mode Kerja:** Status sistem (`OTOMATIS (AUTO)` atau `MANUAL`).
+   - **Status Koneksi:** Status keterhubungan WiFi, nama SSID, alamat IP alat, dan kekuatan sinyal (dBm).
+3. Setiap kali pengiriman telemetri dilakukan ke server web, Serial Monitor juga mencetak dokumen JSON mentah beserta kode respon balasan dari server (contoh: `HTTP 200 OK`).
+
 
