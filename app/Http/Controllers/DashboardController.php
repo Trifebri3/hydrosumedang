@@ -14,11 +14,15 @@ class DashboardController extends Controller
         $user = Auth::user();
 
         // Get accessible devices for this session
-        if ($user && ! $user->isAdmin()) {
+        if (! $user->isAdmin()) {
             $devices = $user->devices()->with('user')->get();
-            // If user has no devices assigned yet, fallback to all or empty
+            // If user has no devices assigned yet, link default alat1sumedang
             if ($devices->isEmpty()) {
-                $devices = Device::with('user')->get();
+                $alat1 = Device::where('device_code', 'alat1sumedang')->first();
+                if ($alat1) {
+                    $alat1->update(['user_id' => $user->id]);
+                    $devices = collect([$alat1]);
+                }
             }
         } else {
             $devices = Device::with('user')->get();
@@ -30,7 +34,7 @@ class DashboardController extends Controller
 
         if ($selectedCode) {
             $device = $devices->firstWhere('device_code', $selectedCode)
-                ?? Device::where('device_code', $selectedCode)->orWhere('api_key', $selectedCode)->first();
+                ?? ($user->isAdmin() ? Device::where('device_code', $selectedCode)->orWhere('api_key', $selectedCode)->first() : null);
         }
 
         if (! $device) {
@@ -40,14 +44,17 @@ class DashboardController extends Controller
 
         // If database was completely empty, create default alat1sumedang
         if (! $device) {
-            $defaultUser = User::where('role', 'user')->first();
             $device = Device::create([
-                'user_id' => $defaultUser?->id,
+                'user_id' => $user->id,
                 'device_code' => 'alat1sumedang',
                 'api_key' => 'alat1sumedang',
                 'name' => 'HydroSense Sumedang Unit 1',
                 'location' => 'Greenhouse Cisewu - Sumedang',
                 'target_tds' => 800.0,
+                'has_tds' => true,
+                'has_temp' => true,
+                'has_pump' => true,
+                'has_auto_mode' => true,
                 'auto_mode' => true,
                 'pump_status' => false,
                 'temperature' => 26.5,

@@ -6,7 +6,7 @@ Dokumen panduan resmi sistem pemantauan dan kendali kebun hidroponik cerdas terp
 
 ## 1. Panduan Akun dan Hak Akses
 
-Platform HydroSense menggunakan sistem multi-kebun terpusat. Anda hanya memerlukan satu alamat web untuk mengelola seluruh instalasi kebun di berbagai wilayah.
+Platform HydroSense menggunakan sistem multi-kebun terpusat yang bersifat privat (tertutup). Tidak ada tampilan publik bebas—siapa pun wajib masuk akun terlebih dahulu untuk mengakses data pemantauan dan kontrol kebun.
 
 ### Tipe Akun:
 1. **Akun Petani / Pemilik Kebun:**

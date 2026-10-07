@@ -91,21 +91,18 @@
                     <span>Buku Panduan</span>
                 </button>
 
-                @auth
-                    <div class="flex items-center gap-2 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200/80">
-                        <div class="w-2 h-2 rounded-full bg-emerald-600"></div>
-                        <span class="text-xs font-bold text-slate-700 max-w-[100px] sm:max-w-none truncate">
-                            {{ auth()->user()->name }}
-                        </span>
-                        <a href="{{ route('logout') }}" title="Keluar dari akun" class="text-slate-400 hover:text-rose-600 transition text-xs font-bold pl-1">
-                            Keluar
-                        </a>
-                    </div>
-                @else
-                    <a href="{{ route('login') }}" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition">
-                        Masuk Akun
+                <div class="flex items-center gap-2 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200/80">
+                    <div class="w-2 h-2 rounded-full bg-emerald-600"></div>
+                    <span class="text-xs font-bold text-slate-700 max-w-[100px] sm:max-w-none truncate">
+                        {{ auth()->user()->name }}
+                    </span>
+                    <span class="hidden sm:inline-block text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">
+                        {{ auth()->user()->isAdmin() ? 'Admin' : 'Petani' }}
+                    </span>
+                    <a href="{{ route('logout') }}" title="Keluar dari akun" class="text-slate-400 hover:text-rose-600 transition text-xs font-bold pl-1">
+                        Keluar
                     </a>
-                @endauth
+                </div>
 
                 <!-- Status Terhubung / Terputus -->
                 <div id="deviceBadgeStatus" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold {{ $device->isOnline() ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
@@ -131,7 +128,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
             <div>
                 <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-                    Halo, <span class="text-emerald-600">{{ auth()->check() ? auth()->user()->name : 'Petani Hebat' }}!</span>
+                    Halo, <span class="text-emerald-600">{{ auth()->user()->name }}!</span>
                 </h1>
                 <p class="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
                     Pantau nutrisi dan kelola sirkulasi air tanaman hidroponik Anda.
