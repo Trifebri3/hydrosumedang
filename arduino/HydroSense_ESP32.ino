@@ -707,6 +707,113 @@ void handleNotFound() {
 }
 
 // ============================================================
+// STATUS & KONTROL RELAY SERIAL MONITOR
+// ============================================================
+void showRelayStatus() {
+  int pinLevel = digitalRead(RELAY_PIN);
+  Serial.println(F("\n=================================================="));
+  Serial.println(F("              STATUS RELAY POMPA D26              "));
+  Serial.println(F("=================================================="));
+  Serial.print(F("Pin GPIO       : D")); Serial.println(RELAY_PIN);
+  Serial.print(F("Status Sistem  : ")); Serial.println(pumpStatus ? F("MENYALA (ON)") : F("MATI (OFF)"));
+  Serial.print(F("Logika Fisik   : "));
+  if (pinLevel == LOW) {
+    Serial.println(F("LOW (0V - Aktif / Terhubung)"));
+  } else {
+    Serial.println(F("HIGH (3.3V - Non-aktif / Terputus)"));
+  }
+  Serial.print(F("Mode Kerja     : ")); Serial.println(autoMode ? F("OTOMATIS (AUTO)") : F("MANUAL"));
+  Serial.print(F("Target Nutrisi : ")); Serial.print(targetTDS, 1); Serial.println(F(" PPM"));
+  Serial.println(F("=================================================="));
+}
+
+void testRelaySequence() {
+  Serial.println(F("\n[UJI RELAY] Memulai uji coba relay pompa..."));
+  Serial.println(F("[UJI RELAY] 1. Menyalakan relay (ON) selama 3 detik..."));
+  autoMode = false;
+  pumpON();
+  delay(3000);
+
+  Serial.println(F("[UJI RELAY] 2. Mematikan relay (OFF)..."));
+  pumpOFF();
+  delay(1000);
+  Serial.println(F("[UJI RELAY] Selesai. Sistem siap."));
+}
+
+void printSerialHelp() {
+  Serial.println(F("\n=================================================="));
+  Serial.println(F("          PERINTAH SERIAL MONITOR ESP32           "));
+  Serial.println(F("=================================================="));
+  Serial.println(F("ON       : Menyalakan relay pompa (Mode Manual)"));
+  Serial.println(F("OFF      : Mematikan relay pompa (Mode Manual)"));
+  Serial.println(F("TOGGLE   : Membalik status relay (ON <-> OFF)"));
+  Serial.println(F("STATUS   : Melihat kondisi fisik pin & relay pompa"));
+  Serial.println(F("TEST     : Uji coba relay otomatis (ON 3 detik -> OFF)"));
+  Serial.println(F("AUTO     : Mengaktifkan kontrol nutrisi otomatis"));
+  Serial.println(F("MANUAL   : Mengaktifkan kontrol pompa manual"));
+  Serial.println(F("HELP     : Menampilkan bantuan perintah ini"));
+  Serial.println(F("{...}    : Mengirim payload JSON modular ke server"));
+  Serial.println(F("=================================================="));
+}
+
+void handleSerialCommand() {
+  if (Serial.available() == 0) return;
+
+  String cmd = Serial.readStringUntil('\n');
+  cmd.trim();
+
+  if (cmd.length() == 0) return;
+
+  // Cek apakah payload JSON NoSQL
+  if (cmd.startsWith("{") && cmd.endsWith("}")) {
+    Serial.println(F("[SERIAL TOOLS] Menerima format JSON, mengirim ke server..."));
+    sendModularTelemetry(cmd);
+    return;
+  }
+
+  cmd.toUpperCase();
+
+  if (cmd == "ON") {
+    autoMode = false;
+    pumpON();
+    Serial.println(F("[SERIAL] Perintah ON diterima. Mode diubah ke MANUAL."));
+  }
+  else if (cmd == "OFF") {
+    autoMode = false;
+    pumpOFF();
+    Serial.println(F("[SERIAL] Perintah OFF diterima. Mode diubah ke MANUAL."));
+  }
+  else if (cmd == "TOGGLE") {
+    autoMode = false;
+    if (pumpStatus) pumpOFF();
+    else pumpON();
+    Serial.println(F("[SERIAL] Status pompa dibalik. Mode diubah ke MANUAL."));
+  }
+  else if (cmd == "STATUS") {
+    showRelayStatus();
+  }
+  else if (cmd == "TEST") {
+    testRelaySequence();
+  }
+  else if (cmd == "AUTO") {
+    autoMode = true;
+    Serial.println(F("[SERIAL] Mode Kerja diubah ke OTOMATIS (AUTO)."));
+  }
+  else if (cmd == "MANUAL") {
+    autoMode = false;
+    Serial.println(F("[SERIAL] Mode Kerja diubah ke MANUAL."));
+  }
+  else if (cmd == "HELP") {
+    printSerialHelp();
+  }
+  else {
+    Serial.print(F("[SERIAL] Perintah tidak dikenal: \""));
+    Serial.print(cmd);
+    Serial.println(F("\". Ketik HELP untuk daftar perintah."));
+  }
+}
+
+// ============================================================
 // SETUP
 // ============================================================
 void setup() {
@@ -717,9 +824,11 @@ void setup() {
   Serial.println(F("       HydroSense by agronex - ESP32 IoT          "));
   Serial.println(F("=================================================="));
 
-  // Inisialisasi Pin Relay
+  // Inisialisasi Pin Relay (Safety Glitch-Free: HIGH sebelum OUTPUT)
+  digitalWrite(RELAY_PIN, RELAY_OFF);
   pinMode(RELAY_PIN, OUTPUT);
-  pumpOFF();
+  digitalWrite(RELAY_PIN, RELAY_OFF);
+  pumpStatus = false;
   analogReadResolution(12);
 
   // Inisialisasi Probe Suhu
@@ -766,6 +875,7 @@ void setup() {
 
   server.begin();
   Serial.println(F("[SERVER] Web Server Lokal Aktif"));
+  Serial.println(F("Ketik HELP di Serial Monitor untuk perintah kontrol pompa."));
   Serial.println(F("==================================================\n"));
 }
 
@@ -826,13 +936,6 @@ void loop() {
     connectToWiFi(savedSSID, savedPassword, 12);
   }
 
-  // 6. Tools Serial Monitor: Input format JSON dari Serial
-  if (Serial.available()) {
-    String serialInput = Serial.readStringUntil('\n');
-    serialInput.trim();
-    if (serialInput.length() > 0 && serialInput.startsWith("{") && serialInput.endsWith("}")) {
-      Serial.println(F("[SERIAL TOOLS] Menerima format JSON, mengirim ke server..."));
-      sendModularTelemetry(serialInput);
-    }
-  }
+  // 6. Tools Serial Monitor: Perintah relay dan format JSON dari Serial
+  handleSerialCommand();
 }
