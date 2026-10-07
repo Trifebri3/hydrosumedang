@@ -2,6 +2,8 @@
 
 Sistem IoT Cerdas untuk Monitoring dan Kontrol Nutrisi Hidroponik berbasis **ESP32**, **Laravel 12**, dan **MySQL**.
 
+**Website Resmi:** [https://hydrosense.agronex.id/](https://hydrosense.agronex.id/)
+
 ---
 
 ## Fitur Utama

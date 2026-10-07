@@ -2,11 +2,13 @@
 
 Dokumen panduan resmi sistem pemantauan dan kendali kebun hidroponik cerdas terpadu HydroSense. Disusun menggunakan bahasa yang mudah dipahami oleh seluruh pengelola kebun, petani mitra, dan administrator.
 
+**Alamat Server Web Resmi:** [https://hydrosense.agronex.id/](https://hydrosense.agronex.id/)
+
 ---
 
 ## 1. Panduan Akun dan Hak Akses
 
-Platform HydroSense menggunakan sistem multi-kebun terpusat yang bersifat privat (tertutup). Tidak ada tampilan publik bebas—siapa pun wajib masuk akun terlebih dahulu untuk mengakses data pemantauan dan kontrol kebun.
+Platform HydroSense menggunakan sistem multi-kebun terpusat yang bersifat privat (tertutup). Tidak ada tampilan publik bebas—siapa pun wajib masuk akun terlebih dahulu melalui **https://hydrosense.agronex.id/** untuk mengakses data pemantauan dan kontrol kebun.
 
 ### Tipe Akun:
 1. **Akun Petani / Pemilik Kebun:**

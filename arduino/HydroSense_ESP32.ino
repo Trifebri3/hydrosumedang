@@ -35,6 +35,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <Preferences.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -78,7 +79,7 @@ DallasTemperature waterTemperature(&oneWire);
 // Konfigurasi WiFi & Server (Tersimpan di Flash Preferences)
 String savedSSID = "";
 String savedPassword = "";
-String savedServerUrl = "http://192.168.1.100:8000/api/sensor/alat1sumedang/data";
+String savedServerUrl = "https://hydrosense.agronex.id/api/sensor/alat1sumedang/data";
 
 bool isWifiConnected = false;
 bool apModeActive = false;
@@ -262,7 +263,16 @@ String sendModularTelemetry(String customJson = "") {
   }
 
   HTTPClient http;
-  http.begin(savedServerUrl);
+  WiFiClient client;
+  WiFiClientSecure secureClient;
+
+  if (savedServerUrl.startsWith("https://")) {
+    secureClient.setInsecure(); // Mengizinkan HTTPS tanpa sertifikat CA statis yang bisa kadaluarsa
+    http.begin(secureClient, savedServerUrl);
+  } else {
+    http.begin(client, savedServerUrl);
+  }
+
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Accept", "application/json");
 
@@ -475,7 +485,7 @@ String buildLocalHtml(String activeTab) {
   "      <label>Alamat Server API Laravel:</label>\n"
   "      <input type='text' name='server' value='");
   html += savedServerUrl;
-  html += F("' placeholder='http://ip-server:8000/api/sensor/alat1sumedang/data' required>\n\n"
+  html += F("' placeholder='https://hydrosense.agronex.id/api/sensor/alat1sumedang/data' required>\n\n"
   "      <button type='submit' class='btn btn-dark'>SIMPAN & SAMBUNGKAN KE JARINGAN</button>\n"
   "    </form>\n"
   "  </div>\n"
