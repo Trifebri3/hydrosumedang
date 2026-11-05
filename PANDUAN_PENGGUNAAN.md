@@ -15,15 +15,12 @@ Platform HydroSense menggunakan sistem multi-kebun terpusat yang bersifat privat
    - Dikhususkan untuk petani atau penanggung jawab lahan di lokasi tertentu (contoh: Petani Sumedang).
    - Saat masuk, petani hanya melihat data dan mengontrol alat pada instalasi kebun miliknya sendiri.
    - Akun bawaan kebun Sumedang:
-     - Nama Pengguna: `usersumedang` atau Email: `sumedang@agronex.id`
-     - Kata Sandi: `password123`
 
 2. **Akun Administrator:**
    - Memiliki kendali penuh atas seluruh instalasi kebun di seluruh daerah.
    - Dapat menambah instalasi baru, membuat akun petani baru, menghubungkan akun ke alat tertentu, dan menyesuaikan fitur tiap alat.
    - Akun bawaan Administrator:
-     - Nama Pengguna: `admin` atau Email: `admin@agronex.id`
-     - Kata Sandi: `admin123`
+
 
 ---
 
